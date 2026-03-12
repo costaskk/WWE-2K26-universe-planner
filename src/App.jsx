@@ -7,7 +7,7 @@ import {
   defaultRivalries,
   defaultTitles,
 } from './data';
-import { supabase, isSupabaseConfigured } from './lib/supabase';
+import { api } from './lib/api';
 import { downloadFile, loadState, saveState } from './utils';
 
 const STORAGE_KEY = 'wwe2k26-universe-planner';
@@ -55,14 +55,6 @@ function normalizeState(input) {
   };
 }
 
-function normalizeUsername(value) {
-  return value.trim().toLowerCase();
-}
-
-function buildSyntheticEmail(username) {
-  return `${normalizeUsername(username)}@users.wwe2k26.local`;
-}
-
 function isValidUsername(username) {
   return /^[a-zA-Z0-9_-]{3,24}$/.test(username.trim());
 }
@@ -84,23 +76,11 @@ function AuthPanel({
   authMessage,
   onSubmit,
   onSignOut,
-  configured,
   cloudStatus,
   activeSlotName,
 }) {
-  if (!configured) {
-    return (
-      <div className="auth-panel">
-        <strong>Cloud accounts are not configured yet.</strong>
-        <p>
-          Add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to enable profiles and cloud saves.
-        </p>
-      </div>
-    );
-  }
-
   if (session?.user) {
-    const userName = session.user.user_metadata?.username || 'Player';
+    const userName = session.user.username || 'Player';
 
     return (
       <div className="auth-panel signed-in">
@@ -240,7 +220,7 @@ export default function App() {
   const [authBusy, setAuthBusy] = useState(false);
   const [authMessage, setAuthMessage] = useState('');
   const [authForm, setAuthForm] = useState({ username: '', password: '' });
-  const [cloudStatus, setCloudStatus] = useState(isSupabaseConfigured ? 'Checking cloud…' : 'Local only');
+  const [cloudStatus, setCloudStatus] = useState('Checking profiles…');
   const [saveSlots, setSaveSlots] = useState([]);
   const [activeSlotId, setActiveSlotId] = useState(() => localStorage.getItem(ACTIVE_SLOT_STORAGE_KEY) || null);
   const [slotName, setSlotName] = useState('');
@@ -262,36 +242,28 @@ export default function App() {
   }, [activeSlotId]);
 
   useEffect(() => {
-    if (!supabase) return undefined;
-
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (!mounted) return;
-      if (error) {
-        setAuthMessage(error.message);
-        setCloudStatus('Cloud unavailable');
-        return;
-      }
-      setSession(data.session ?? null);
-      setCloudStatus(data.session ? 'Syncing cloud save…' : 'Signed out');
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession ?? null);
-      setCloudStatus(nextSession ? 'Syncing cloud save…' : 'Signed out');
-    });
+    api.getSession()
+      .then((data) => {
+        if (!mounted) return;
+        const nextSession = data?.user ? { user: data.user } : null;
+        setSession(nextSession);
+        setCloudStatus(nextSession ? 'Syncing cloud save…' : 'Signed out');
+      })
+      .catch((error) => {
+        if (!mounted) return;
+        setAuthMessage(error.message || 'Could not reach the profile server.');
+        setCloudStatus('Profiles unavailable');
+      });
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
     };
   }, []);
 
   useEffect(() => {
-    if (!supabase || !session?.user?.id) {
+    if (!session?.user?.id) {
       cloudHydratedForUser.current = null;
       setSaveSlots([]);
       setActiveSlotId(null);
@@ -301,43 +273,37 @@ export default function App() {
     const hydrateCloudSlots = async () => {
       setCloudStatus('Loading your universes…');
 
-      const { data, error } = await supabase
-        .from('universes')
-        .select('id, slot_name, data, updated_at')
-        .eq('user_id', session.user.id)
-        .order('updated_at', { ascending: false });
+      try {
+        const response = await api.listUniverses();
+        let slots = response.universes ?? [];
 
-      if (error) {
+        if (!slots.length) {
+          const created = await createCloudSlot(DEFAULT_SLOT_NAME, state);
+          if (!created) return;
+          slots = [created];
+        }
+
+        setSaveSlots(slots);
+
+        const requestedSlot = activeSlotId && slots.find((slot) => slot.id === activeSlotId) ? activeSlotId : slots[0].id;
+        const selected = slots.find((slot) => slot.id === requestedSlot) || slots[0];
+
+        skipNextCloudSave.current = true;
+        setActiveSlotId(selected.id);
+        setState(normalizeState(selected.data));
+        setCloudStatus(`Loaded ${selected.slot_name}`);
+        cloudHydratedForUser.current = session.user.id;
+      } catch (error) {
         setCloudStatus('Cloud load failed');
-        setAuthMessage(error.message);
-        return;
+        setAuthMessage(error.message || 'Could not load your universes.');
       }
-
-      let slots = data ?? [];
-
-      if (!slots.length) {
-        const created = await createCloudSlot(DEFAULT_SLOT_NAME, state);
-        if (!created) return;
-        slots = [created];
-      }
-
-      setSaveSlots(slots);
-
-      const requestedSlot = activeSlotId && slots.find((slot) => slot.id === activeSlotId) ? activeSlotId : slots[0].id;
-      const selected = slots.find((slot) => slot.id === requestedSlot) || slots[0];
-
-      skipNextCloudSave.current = true;
-      setActiveSlotId(selected.id);
-      setState(normalizeState(selected.data));
-      setCloudStatus(`Loaded ${selected.slot_name}`);
-      cloudHydratedForUser.current = session.user.id;
     };
 
     hydrateCloudSlots();
   }, [session?.user?.id]);
 
   useEffect(() => {
-    if (!supabase || !session?.user?.id || !activeSlotId) return;
+    if (!session?.user?.id || !activeSlotId) return;
     if (cloudHydratedForUser.current !== session.user.id) return;
 
     if (skipNextCloudSave.current) {
@@ -391,63 +357,43 @@ export default function App() {
   );
 
   async function createCloudSlot(name, sourceState = freshState()) {
-    if (!supabase || !session?.user?.id) return null;
+    if (!session?.user?.id) return null;
 
-    const trimmedName = name.trim();
-    const payload = {
-      user_id: session.user.id,
-      slot_name: trimmedName,
-      data: normalizeState(sourceState),
-      updated_at: new Date().toISOString(),
-    };
-
-    const { data, error } = await supabase
-      .from('universes')
-      .insert(payload)
-      .select('id, slot_name, data, updated_at')
-      .single();
-
-    if (error) {
-      setAuthMessage(error.message);
+    try {
+      const response = await api.createUniverse({
+        slotName: name.trim(),
+        data: normalizeState(sourceState),
+      });
+      return response.universe;
+    } catch (error) {
+      setAuthMessage(error.message || 'Could not create save slot.');
       setCloudStatus('Cloud save failed');
       return null;
     }
-
-    return data;
   }
 
   async function saveUniverseToCloud(slotId, nextState, successLabel = 'All changes saved') {
-    if (!supabase || !session?.user?.id || !slotId) return;
+    if (!session?.user?.id || !slotId) return;
 
     setCloudStatus('Saving to cloud…');
 
-    const payload = {
-      id: slotId,
-      user_id: session.user.id,
-      slot_name: saveSlots.find((slot) => slot.id === slotId)?.slot_name || DEFAULT_SLOT_NAME,
-      data: normalizeState(nextState),
-      updated_at: new Date().toISOString(),
-    };
-
-    const { data, error } = await supabase
-      .from('universes')
-      .upsert(payload)
-      .select('id, slot_name, data, updated_at')
-      .single();
-
-    if (error) {
+    try {
+      const response = await api.saveUniverse({
+        id: slotId,
+        data: normalizeState(nextState),
+      });
+      const saved = response.universe;
+      setSaveSlots((current) => {
+        const next = current.some((slot) => slot.id === saved.id)
+          ? current.map((slot) => (slot.id === saved.id ? saved : slot))
+          : [saved, ...current];
+        return [...next].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+      });
+      setCloudStatus(successLabel);
+    } catch (error) {
       setCloudStatus('Cloud save failed');
-      setAuthMessage(error.message);
-      return;
+      setAuthMessage(error.message || 'Could not save your universe.');
     }
-
-    setSaveSlots((current) => {
-      const next = current.some((slot) => slot.id === data.id)
-        ? current.map((slot) => (slot.id === data.id ? data : slot))
-        : [data, ...current];
-      return [...next].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-    });
-    setCloudStatus(successLabel);
   }
 
   const updateStateList = (key, updater) => {
@@ -574,7 +520,6 @@ export default function App() {
 
   const handleAuthSubmit = async (event) => {
     event.preventDefault();
-    if (!supabase) return;
 
     const username = authForm.username.trim();
 
@@ -587,53 +532,35 @@ export default function App() {
     setAuthMessage('');
 
     try {
-      const syntheticEmail = buildSyntheticEmail(username);
+      const response = authMode === 'register'
+        ? await api.register({ username, password: authForm.password })
+        : await api.login({ username, password: authForm.password });
 
-      if (authMode === 'register') {
-        const { error } = await supabase.auth.signUp({
-          email: syntheticEmail,
-          password: authForm.password,
-          options: {
-            data: {
-              username: normalizeUsername(username),
-            },
-          },
-        });
-
-        if (error) throw error;
-
-        setAuthMessage('Profile created. Use your username and password to sign in.');
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: syntheticEmail,
-          password: authForm.password,
-        });
-
-        if (error) throw error;
-
-        setAuthMessage('Welcome back.');
-      }
-
+      const nextSession = response?.user ? { user: response.user } : null;
+      setSession(nextSession);
+      setSaveSlots([]);
+      setActiveSlotId(null);
+      setCloudStatus(nextSession ? 'Syncing cloud save…' : 'Signed out');
+      setAuthMessage(authMode === 'register' ? 'Profile created.' : 'Welcome back.');
       setAuthForm({ username: '', password: '' });
     } catch (error) {
-      if (String(error.message || '').toLowerCase().includes('email')) {
-        setAuthMessage('That username is already taken, or email confirmation is still enabled in Supabase. Disable email confirmation for username-only profiles.');
-      } else {
-        setAuthMessage(error.message || 'Authentication failed.');
-      }
+      setAuthMessage(error.message || 'Authentication failed.');
     } finally {
       setAuthBusy(false);
     }
   };
 
   const handleSignOut = async () => {
-    if (!supabase) return;
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      setAuthMessage(error.message);
-      return;
+    try {
+      await api.logout();
+      setSession(null);
+      setSaveSlots([]);
+      setActiveSlotId(null);
+      setCloudStatus('Signed out');
+      setAuthMessage('Signed out. Your guest browser copy is still available on this device.');
+    } catch (error) {
+      setAuthMessage(error.message || 'Could not sign out.');
     }
-    setAuthMessage('Signed out. Your guest browser copy is still available on this device.');
   };
 
   const handleCreateSlot = async (event) => {
@@ -671,7 +598,7 @@ export default function App() {
   };
 
   const handleDeleteSlot = async (slotId) => {
-    if (!supabase || !session?.user?.id) return;
+    if (!session?.user?.id) return;
     if (saveSlots.length <= 1) {
       setAuthMessage('Keep at least one universe slot.');
       return;
@@ -681,30 +608,24 @@ export default function App() {
     if (!slot) return;
 
     setSlotBusy(true);
-    const { error } = await supabase
-      .from('universes')
-      .delete()
-      .eq('id', slotId)
-      .eq('user_id', session.user.id);
+    try {
+      await api.deleteUniverse({ id: slotId });
+      const nextSlots = saveSlots.filter((entry) => entry.id !== slotId);
+      setSaveSlots(nextSlots);
 
-    if (error) {
-      setAuthMessage(error.message);
+      if (activeSlotId === slotId && nextSlots.length) {
+        skipNextCloudSave.current = true;
+        setActiveSlotId(nextSlots[0].id);
+        setState(normalizeState(nextSlots[0].data));
+        setCloudStatus(`Loaded ${nextSlots[0].slot_name}`);
+      }
+
+      setAuthMessage(`Deleted ${slot.slot_name}.`);
+    } catch (error) {
+      setAuthMessage(error.message || 'Could not delete that slot.');
+    } finally {
       setSlotBusy(false);
-      return;
     }
-
-    const nextSlots = saveSlots.filter((entry) => entry.id !== slotId);
-    setSaveSlots(nextSlots);
-
-    if (activeSlotId === slotId && nextSlots.length) {
-      skipNextCloudSave.current = true;
-      setActiveSlotId(nextSlots[0].id);
-      setState(normalizeState(nextSlots[0].data));
-      setCloudStatus(`Loaded ${nextSlots[0].slot_name}`);
-    }
-
-    setAuthMessage(`Deleted ${slot.slot_name}.`);
-    setSlotBusy(false);
   };
 
   return (
@@ -715,7 +636,7 @@ export default function App() {
           <h1>Universe &amp; Creations Planner</h1>
           <p>
             Manage brand splits, champions, rivalries, and weekly cards in one place. This version now supports simple
-            usernames, multiple save slots, and synced profiles without collecting personal email addresses.
+            usernames, multiple save slots, and synced profiles without storing personal email addresses.
           </p>
         </div>
         <div className="hero-actions">
@@ -743,7 +664,6 @@ export default function App() {
             authMessage={authMessage}
             onSubmit={handleAuthSubmit}
             onSignOut={handleSignOut}
-            configured={isSupabaseConfigured}
             cloudStatus={cloudStatus}
             activeSlotName={activeSlotName}
           />

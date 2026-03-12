@@ -1,103 +1,88 @@
-# WWE 2K26 Universe & Creations Planner
+# WWE 2K26 Universe Planner
 
-A React + Vite companion app for WWE 2K26 players who want to manage rosters, brands, titles, rivalries, and weekly cards.
+A Vite + React web app with a custom username/password auth system and multiple cloud save slots for WWE 2K26 Universe planning.
 
-This version supports:
-- guest mode with browser localStorage
-- username + password profiles backed by Supabase Auth
-- multiple per-user cloud save slots in Supabase
-- JSON import and export
-- Vercel deployment from GitHub
+## What changed
 
-## 1. Run locally
+This version no longer uses Supabase Auth.
+
+Instead it uses:
+- a custom `app_users` table
+- hashed passwords with `bcryptjs`
+- signed HttpOnly session cookies
+- Vercel serverless API routes
+- Supabase only as the database
+
+That means users can sign up with only:
+- username
+- password
+
+No personal email address is required.
+
+## Features
+
+- username + password registration
+- login/logout
+- multiple universe save slots per user
+- guest local save mode
+- brand split manager
+- roster editor
+- title assignment
+- rivalry tracker
+- weekly card builder
+- JSON import/export
+
+## Local development
+
+1. Copy `.env.example` to `.env`
+2. Fill in the environment variables
+3. Install dependencies
+4. Start the app
 
 ```bash
+cp .env.example .env
 npm install
 npm run dev
 ```
 
-## 2. Create a Supabase project
+Frontend runs on `http://localhost:5173`
+Backend API runs on `http://localhost:3001`
 
-1. Create a new project in Supabase.
-2. In **SQL Editor**, run the contents of `supabase/schema.sql`.
-3. In **Authentication > Providers**, keep Email enabled.
-4. In **Authentication > Email**, turn **Confirm email** off for this username-only flow.
-5. In **Authentication > URL Configuration**, add:
-   - `http://localhost:5173`
-   - your future Vercel production URL
-6. Copy your project URL and publishable key.
-
-### Why Email stays enabled
-
-Supabase Auth requires an email-style identifier for password sign-in. This app does **not** ask users for a personal email address.
-Instead, it converts the username into an internal synthetic login like:
-
-```text
-username@users.wwe2k26.local
-```
-
-That gives you username + password login without collecting personal contact info.
-
-Create a local `.env` file:
-
-```bash
-cp .env.example .env
-```
-
-Then fill in:
+## Required environment variables
 
 ```env
-VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_ANON_KEY=your-publishable-key
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
+APP_JWT_SECRET=replace-this-with-a-long-random-secret
 ```
 
-## 3. Push changes to GitHub
+## Supabase setup
 
-Make sure `.env` is ignored.
+Open Supabase SQL Editor and run:
 
-```bash
-git add .
-git commit -m "Add username profiles and multiple universe slots"
-git push
+```sql
+-- file: supabase/schema.sql
 ```
 
-If `.env` was previously uploaded, remove it once:
+This creates:
+- `app_users`
+- `universes`
 
-```bash
-git rm --cached .env
-git add .gitignore
-git commit -m "Remove env file from repository"
-git push
-```
+## Deploy to Vercel
 
-## 4. Deploy to Vercel from GitHub
+1. Push the repo to GitHub
+2. Import the repo into Vercel
+3. Add the three environment variables in Vercel
+4. Deploy
 
-1. Sign in to Vercel.
-2. Click **Add New → Project**.
-3. Import your GitHub repo.
-4. Vercel should detect **Vite** automatically.
-5. Add these environment variables in the Vercel project settings:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-6. Deploy.
+### Vercel environment variables
 
-## 5. Required Vercel environment variables
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `APP_JWT_SECRET`
 
-In Vercel → Project Settings → Environment Variables:
+## Important
 
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-
-After deployment, copy your Vercel production URL and add it in Supabase Auth URL settings as a valid Site URL / redirect origin.
-
-## 6. Build manually
-
-```bash
-npm run build
-```
-
-## 7. Notes
-
-- Guest users save only in their current browser.
-- Signed-in users can create multiple universe save slots.
-- Each save slot can hold its own brands, roster, rivalries, championships, and cards.
+- Never commit `.env`
+- Never expose `SUPABASE_SERVICE_ROLE_KEY` in frontend code
+- Rotate your old public key if you want, but this version does not need it anymore
