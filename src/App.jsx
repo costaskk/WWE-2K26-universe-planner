@@ -51,7 +51,7 @@ function normalizeState(input) {
     ? input.brands.map((brand) => ({
         ...brand,
         color: brand.color || '#7c3aed',
-        imageUrl: brand.imageUrl || createBrandArt(brand.name, brand.color || '#7c3aed'),
+        imageUrl: brand.imageUrl || '',
       }))
     : base.brands;
 
@@ -62,7 +62,7 @@ function normalizeState(input) {
     roster: Array.isArray(input.roster)
       ? input.roster.map((star) => ({
           ...star,
-          imageUrl: star.imageUrl || createSuperstarArt(star.name, brandColorMap[star.brandId] || '#334155', star.division || 'Main Event'),
+          imageUrl: star.imageUrl || '',
         }))
       : base.roster,
     titles: Array.isArray(input.titles) ? input.titles : base.titles,
@@ -70,7 +70,7 @@ function normalizeState(input) {
     cards: Array.isArray(input.cards)
       ? input.cards.map((card) => ({
           ...card,
-          imageUrl: card.imageUrl || createShowArt(card.showName, card.episodeName, '#7c3aed'),
+          imageUrl: card.imageUrl || '',
         }))
       : base.cards,
   };
@@ -569,7 +569,7 @@ export default function App() {
     if (!brandName.trim()) return;
     updateStateList('brands', (brands) => [
       ...brands,
-      { id: crypto.randomUUID(), name: brandName.trim(), color: brandColor, imageUrl: brandImageUrl.trim() || createBrandArt(brandName.trim(), brandColor) },
+      { id: crypto.randomUUID(), name: brandName.trim(), color: brandColor, imageUrl: brandImageUrl.trim(), },
     ]);
     setBrandName('');
     setBrandImageUrl('');
@@ -591,7 +591,7 @@ export default function App() {
         brandId: null,
         alignment: 'Face',
         division: 'Main Event',
-        imageUrl: rosterImageUrl.trim() || createSuperstarArt(rosterName.trim(), '#334155', 'Main Event'),
+        imageUrl: rosterImageUrl.trim(),
       },
     ]);
     setRosterName('');

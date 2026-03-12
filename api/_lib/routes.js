@@ -16,7 +16,13 @@ function validatePassword(password) {
 }
 
 function detailsFromError(error, fallback) {
-  return error?.message || error?.payload?.message || error?.payload?.details || fallback;
+  return (
+    error?.payload?.message ||
+    error?.payload?.details ||
+    error?.cause?.message ||
+    error?.message ||
+    fallback
+  );
 }
 
 export async function handleRegister(req, res, body) {

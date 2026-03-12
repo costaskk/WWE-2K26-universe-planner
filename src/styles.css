@@ -138,17 +138,17 @@ input:focus, select:focus, textarea:focus {
 .slot-card.active { border-color: rgba(244, 114, 182, 0.45); box-shadow: 0 18px 48px rgba(168, 85, 247, 0.18); }
 .brand-board { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
 .roster-grid {
-  grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(560px, 1fr));
   align-items: start;
+  gap: 1.25rem;
 }
 
 .visual-card {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
   gap: 1rem;
-  overflow: hidden;
-  position: relative;
   align-items: start;
+  overflow: hidden;
 }
 
 .visual-content {
@@ -161,11 +161,14 @@ input:focus, select:focus, textarea:focus {
   min-width: 0;
 }
 
-@media (max-width: 980px) {
-  .two-column {
-    grid-template-columns: 1fr;
-  }
+.display-name {
+  font-size: 1.8rem;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  word-break: break-word;
+}
 
+@media (max-width: 980px) {
   .roster-grid {
     grid-template-columns: 1fr;
   }
@@ -174,10 +177,8 @@ input:focus, select:focus, textarea:focus {
     grid-template-columns: 1fr;
   }
 
-  .media-thumb.compact,
-  .brand-visual .media-thumb,
-  .show-card .media-thumb {
-    min-height: 240px;
+  .media-thumb.compact {
+    min-height: 260px;
     aspect-ratio: 16 / 10;
   }
 }

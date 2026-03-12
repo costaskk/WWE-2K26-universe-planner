@@ -9,10 +9,10 @@ function restBase() {
 }
 
 function defaultHeaders(extra = {}) {
-  const serviceRole = getEnv('SUPABASE_SERVICE_ROLE_KEY');
+  const serviceKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
   return {
-    apikey: serviceRole,
-    Authorization: `Bearer ${serviceRole}`,
+    apikey: serviceKey,
+    Authorization: serviceKey,
     'Content-Type': 'application/json',
     Prefer: 'return=representation',
     ...extra,
