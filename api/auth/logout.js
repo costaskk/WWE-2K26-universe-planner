@@ -1,4 +1,4 @@
-import { handleLogout } from '../../server/lib/routes.js';
+import { handleLogout } from '../_lib/routes.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

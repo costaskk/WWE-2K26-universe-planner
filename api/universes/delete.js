@@ -1,5 +1,5 @@
-import { handleDeleteUniverse } from '../../server/lib/routes.js';
-import { readBody } from '../../server/lib/http.js';
+import { handleDeleteUniverse } from '../_lib/routes.js';
+import { readBody } from '../_lib/http.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

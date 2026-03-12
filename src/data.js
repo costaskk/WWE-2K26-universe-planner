@@ -1,31 +1,48 @@
-const svgDataUri = ({ title, subtitle, background, accent = '#ffffff', badge = '', badgeBg = 'rgba(255,255,255,.14)' }) => {
+const svgDataUri = ({
+  title,
+  subtitle,
+  background = '#7c3aed',
+  accent = '#ffffff',
+  badge = '',
+  badgeBg = '#0f172a',
+  logoText = '',
+}) => {
+  const safeTitle = String(title || '').replace(/&/g, '&amp;');
+  const safeSubtitle = String(subtitle || '').replace(/&/g, '&amp;');
+  const safeBadge = String(badge || '').replace(/&/g, '&amp;');
+  const safeLogo = String(logoText || '').replace(/&/g, '&amp;');
+
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675">
       <defs>
-        <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0%" stop-color="#020617" />
-          <stop offset="65%" stop-color="#0f172a" />
-          <stop offset="100%" stop-color="${background}" />
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#020617"/>
+          <stop offset="55%" stop-color="#081225"/>
+          <stop offset="100%" stop-color="${background}"/>
         </linearGradient>
-        <linearGradient id="shine" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0%" stop-color="rgba(255,255,255,.35)" />
-          <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+        <linearGradient id="shine" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
         </linearGradient>
       </defs>
-      <rect width="1200" height="675" rx="32" fill="url(#g)" />
-      <circle cx="1060" cy="110" r="190" fill="rgba(255,255,255,.08)" />
-      <circle cx="1040" cy="110" r="110" fill="rgba(255,255,255,.08)" />
-      <circle cx="160" cy="580" r="220" fill="rgba(255,255,255,.04)" />
-      <path d="M0 540 C220 470 430 650 740 580 C930 535 1080 430 1200 450 L1200 675 L0 675 Z" fill="rgba(255,255,255,.05)" />
-      <rect x="72" y="72" width="165" height="40" rx="20" fill="${badgeBg}" />
-      <text x="154" y="98" text-anchor="middle" font-size="24" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="700">${badge}</text>
-      <text x="72" y="268" font-size="88" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="800">${title}</text>
-      <text x="76" y="338" font-size="34" fill="#dbeafe" font-family="Arial, Helvetica, sans-serif">${subtitle}</text>
-      <rect x="72" y="528" width="410" height="10" rx="5" fill="${accent}" opacity="0.88" />
-      <text x="74" y="602" font-size="24" fill="#cbd5e1" font-family="Arial, Helvetica, sans-serif">Built-in artwork placeholder. Replace with your own image URL any time.</text>
+      <rect width="1200" height="675" rx="36" fill="url(#bg)"/>
+      <circle cx="1040" cy="110" r="170" fill="#ffffff" opacity="0.08"/>
+      <circle cx="150" cy="610" r="240" fill="#ffffff" opacity="0.04"/>
+      <path d="M0 500 C250 430 420 650 760 560 C920 520 1080 430 1200 455 L1200 675 L0 675 Z" fill="#ffffff" opacity="0.06"/>
+      <rect x="70" y="70" width="180" height="44" rx="22" fill="${badgeBg}" opacity="0.9"/>
+      <text x="160" y="98" text-anchor="middle" font-size="24" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="700">${safeBadge}</text>
+      <circle cx="1048" cy="338" r="130" fill="#020617" opacity="0.45" stroke="#ffffff" stroke-opacity="0.15"/>
+      <text x="1048" y="362" text-anchor="middle" font-size="86" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900">${safeLogo}</text>
+      <rect x="60" y="60" width="1080" height="555" rx="28" fill="url(#shine)"/>
+      <text x="72" y="282" font-size="92" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900">${safeTitle}</text>
+      <text x="76" y="350" font-size="34" fill="#dbeafe" font-family="Arial, Helvetica, sans-serif">${safeSubtitle}</text>
+      <rect x="72" y="528" width="420" height="10" rx="5" fill="${accent}" opacity="0.95"/>
     </svg>`;
+
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
+
+const commonsFile = (filename) => `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(filename)}?width=900`;
 
 export const createBrandArt = (name, color = '#7c3aed') => svgDataUri({
   title: String(name || 'BRAND').toUpperCase(),
@@ -33,7 +50,8 @@ export const createBrandArt = (name, color = '#7c3aed') => svgDataUri({
   background: color,
   accent: color,
   badge: 'BRAND',
-  badgeBg: 'rgba(15,23,42,.45)',
+  badgeBg: '#111827',
+  logoText: String(name || 'BR').slice(0, 2).toUpperCase(),
 });
 
 export const createSuperstarArt = (name, color = '#334155', division = 'Main Event') => svgDataUri({
@@ -42,7 +60,8 @@ export const createSuperstarArt = (name, color = '#334155', division = 'Main Eve
   background: color,
   accent: '#f8fafc',
   badge: 'ROSTER',
-  badgeBg: 'rgba(30,41,59,.55)',
+  badgeBg: '#0f172a',
+  logoText: String(name || 'SS').split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase(),
 });
 
 export const createShowArt = (showName, episodeName, color = '#7c3aed') => svgDataUri({
@@ -51,58 +70,86 @@ export const createShowArt = (showName, episodeName, color = '#7c3aed') => svgDa
   background: color,
   accent: '#f8fafc',
   badge: 'SHOW',
-  badgeBg: 'rgba(30,41,59,.55)',
+  badgeBg: '#111827',
+  logoText: String(showName || 'SH').slice(0, 2).toUpperCase(),
 });
 
 export const recommendedImageSources = [
   {
     name: 'Wikimedia Commons',
-    type: 'Wrestlers, logos, belts',
+    type: 'Freely licensed wrestler photos',
     url: 'https://commons.wikimedia.org/wiki/Category:World_Wrestling_Entertainment',
-    note: 'Strong option for freely licensed wrestling imagery when specific talent or brand photos exist.',
-  },
-  {
-    name: 'Unsplash',
-    type: 'Arena lights, crowds, pyros',
-    url: 'https://unsplash.com',
-    note: 'Great for premium-looking show banners, stage textures, and event backgrounds.',
-  },
-  {
-    name: 'Pexels',
-    type: 'Sports lighting, stage visuals, crowd shots',
-    url: 'https://www.pexels.com',
-    note: 'Useful for generic event art when you want posters and dashboard imagery to feel more alive.',
+    note: 'Best default source for real wrestler photos and some event imagery that can be reused under free licenses.',
   },
   {
     name: 'Openverse',
-    type: 'Search across CC images',
+    type: 'Search across Creative Commons libraries',
     url: 'https://openverse.org',
-    note: 'Helpful for scanning multiple open-licensed image libraries from one search box.',
+    note: 'Useful when you want one place to search multiple open-license image collections for stages, spotlights, and crowd visuals.',
+  },
+  {
+    name: 'Unsplash',
+    type: 'Arena lighting and generic event backdrops',
+    url: 'https://unsplash.com',
+    note: 'Great for stylized PPV-style backgrounds, stage lights, and crowd atmosphere art.',
+  },
+  {
+    name: 'Pexels',
+    type: 'Sports and entertainment background art',
+    url: 'https://www.pexels.com',
+    note: 'Solid option for free generic posters, sports-lighting textures, and dramatic event imagery.',
   },
 ];
 
+const superstarPhotoMap = {
+  'Roman Reigns': commonsFile('Roman Reigns May 2019.jpg'),
+  'Cody Rhodes': commonsFile('Cody Rhodes, Wrestlemania XL in 2024 6 (cropped).jpg'),
+  'CM Punk': commonsFile('CM Punk RR25.jpg'),
+  'Seth Rollins': commonsFile('WWE Champion Seth Rollins.jpg'),
+  'Rhea Ripley': commonsFile('Rhea Ripley 040724.jpg'),
+  'Bianca Belair': commonsFile('Bianca Belair 2024.jpg'),
+  'Becky Lynch': commonsFile('Becky Lynch November 2018.jpg'),
+  'Randy Orton': commonsFile('Randy Orton crop.jpg'),
+};
+
+const brandTheme = {
+  Raw: { color: '#d61f2c', short: 'RA' },
+  SmackDown: { color: '#2563eb', short: 'SD' },
+  NXT: { color: '#f59e0b', short: 'NX' },
+};
+
 export const defaultBrands = [
-  { id: crypto.randomUUID(), name: 'Raw', color: '#d61f2c', imageUrl: createBrandArt('RAW', '#d61f2c') },
-  { id: crypto.randomUUID(), name: 'SmackDown', color: '#2563eb', imageUrl: createBrandArt('SMACKDOWN', '#2563eb') },
-  { id: crypto.randomUUID(), name: 'NXT', color: '#f59e0b', imageUrl: createBrandArt('NXT', '#f59e0b') },
+  { id: crypto.randomUUID(), name: 'Raw', color: brandTheme.Raw.color, imageUrl: createBrandArt('RAW', brandTheme.Raw.color) },
+  { id: crypto.randomUUID(), name: 'SmackDown', color: brandTheme.SmackDown.color, imageUrl: createBrandArt('SMACKDOWN', brandTheme.SmackDown.color) },
+  { id: crypto.randomUUID(), name: 'NXT', color: brandTheme.NXT.color, imageUrl: createBrandArt('NXT', brandTheme.NXT.color) },
 ];
 
+const seededStar = (name, color, division, extra = {}) => ({
+  id: crypto.randomUUID(),
+  name,
+  brandId: null,
+  alignment: 'Face',
+  division,
+  imageUrl: superstarPhotoMap[name] || createSuperstarArt(name, color, division),
+  ...extra,
+});
+
 export const defaultRoster = [
-  { id: crypto.randomUUID(), name: 'Roman Reigns', brandId: null, alignment: 'Heel', division: 'Main Event', imageUrl: createSuperstarArt('Roman Reigns', '#7f1d1d', 'Main Event') },
-  { id: crypto.randomUUID(), name: 'Cody Rhodes', brandId: null, alignment: 'Face', division: 'Main Event', imageUrl: createSuperstarArt('Cody Rhodes', '#0f766e', 'Main Event') },
-  { id: crypto.randomUUID(), name: 'CM Punk', brandId: null, alignment: 'Tweener', division: 'Main Event', imageUrl: createSuperstarArt('CM Punk', '#4b5563', 'Main Event') },
-  { id: crypto.randomUUID(), name: 'Seth Rollins', brandId: null, alignment: 'Face', division: 'Main Event', imageUrl: createSuperstarArt('Seth Rollins', '#7c3aed', 'Main Event') },
-  { id: crypto.randomUUID(), name: 'Rhea Ripley', brandId: null, alignment: 'Tweener', division: 'Women', imageUrl: createSuperstarArt('Rhea Ripley', '#111827', 'Women') },
-  { id: crypto.randomUUID(), name: 'Bianca Belair', brandId: null, alignment: 'Face', division: 'Women', imageUrl: createSuperstarArt('Bianca Belair', '#be185d', 'Women') },
-  { id: crypto.randomUUID(), name: 'Jey Uso', brandId: null, alignment: 'Face', division: 'Main Event', imageUrl: createSuperstarArt('Jey Uso', '#0f766e', 'Main Event') },
-  { id: crypto.randomUUID(), name: 'LA Knight', brandId: null, alignment: 'Face', division: 'Midcard', imageUrl: createSuperstarArt('LA Knight', '#334155', 'Midcard') },
-  { id: crypto.randomUUID(), name: 'Gunther', brandId: null, alignment: 'Heel', division: 'Main Event', imageUrl: createSuperstarArt('Gunther', '#78350f', 'Main Event') },
-  { id: crypto.randomUUID(), name: 'Damian Priest', brandId: null, alignment: 'Tweener', division: 'Main Event', imageUrl: createSuperstarArt('Damian Priest', '#312e81', 'Main Event') },
-  { id: crypto.randomUUID(), name: 'Liv Morgan', brandId: null, alignment: 'Heel', division: 'Women', imageUrl: createSuperstarArt('Liv Morgan', '#ec4899', 'Women') },
-  { id: crypto.randomUUID(), name: 'Becky Lynch', brandId: null, alignment: 'Face', division: 'Women', imageUrl: createSuperstarArt('Becky Lynch', '#ea580c', 'Women') },
-  { id: crypto.randomUUID(), name: 'The Usos', brandId: null, alignment: 'Face', division: 'Tag', imageUrl: createSuperstarArt('The Usos', '#0f766e', 'Tag Team') },
-  { id: crypto.randomUUID(), name: 'The Judgment Day', brandId: null, alignment: 'Heel', division: 'Tag', imageUrl: createSuperstarArt('Judgment Day', '#111827', 'Tag Team') },
-  { id: crypto.randomUUID(), name: 'Randy Orton', brandId: null, alignment: 'Face', division: 'Main Event', imageUrl: createSuperstarArt('Randy Orton', '#14532d', 'Main Event') },
+  seededStar('Roman Reigns', '#7f1d1d', 'Main Event', { alignment: 'Heel' }),
+  seededStar('Cody Rhodes', '#0f766e', 'Main Event'),
+  seededStar('CM Punk', '#4b5563', 'Main Event', { alignment: 'Tweener' }),
+  seededStar('Seth Rollins', '#7c3aed', 'Main Event'),
+  seededStar('Rhea Ripley', '#111827', 'Women', { alignment: 'Tweener' }),
+  seededStar('Bianca Belair', '#be185d', 'Women'),
+  seededStar('Jey Uso', '#0f766e', 'Main Event'),
+  seededStar('LA Knight', '#334155', 'Midcard'),
+  seededStar('Gunther', '#78350f', 'Main Event', { alignment: 'Heel' }),
+  seededStar('Damian Priest', '#312e81', 'Main Event', { alignment: 'Tweener' }),
+  seededStar('Liv Morgan', '#ec4899', 'Women', { alignment: 'Heel' }),
+  seededStar('Becky Lynch', '#ea580c', 'Women'),
+  seededStar('The Usos', '#0f766e', 'Tag'),
+  seededStar('The Judgment Day', '#111827', 'Tag', { alignment: 'Heel' }),
+  seededStar('Randy Orton', '#14532d', 'Main Event'),
 ];
 
 export const defaultTitles = [

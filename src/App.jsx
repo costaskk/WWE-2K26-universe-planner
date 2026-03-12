@@ -95,6 +95,15 @@ function getErrorMessage(error, fallback) {
   return error.message || fallback;
 }
 
+function brandBadgeStyle(color = '#64748b') {
+  return {
+    background: `${color}22`,
+    color,
+    borderColor: `${color}66`,
+    boxShadow: `0 8px 20px ${color}22`,
+  };
+}
+
 function Modal({ modal, onClose }) {
   if (!modal) return null;
 
@@ -128,13 +137,38 @@ function Toast({ toast }) {
   );
 }
 
-function MediaThumb({ src, alt, compact = false, logo = null }) {
+function MediaThumb({ src, alt, fallbackSrc = '', compact = false, logo = null }) {
+  const [currentSrc, setCurrentSrc] = useState(src || fallbackSrc || '');
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setCurrentSrc(src || fallbackSrc || '');
+    setLoaded(false);
+  }, [src, fallbackSrc]);
+
   return (
     <div className={`media-thumb ${compact ? 'compact' : ''}`}>
-      {src ? <img src={src} alt={alt} loading="lazy" referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.style.display = 'none'; event.currentTarget.nextSibling?.classList.add('show'); }} /> : null}
-      <div className={`media-fallback ${src ? '' : 'show'}`}>
+      {currentSrc ? (
+        <img
+          src={currentSrc}
+          alt={alt}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onLoad={() => setLoaded(true)}
+          onError={() => {
+            if (fallbackSrc && currentSrc !== fallbackSrc) {
+              setCurrentSrc(fallbackSrc);
+              setLoaded(false);
+            } else {
+              setCurrentSrc('');
+              setLoaded(false);
+            }
+          }}
+        />
+      ) : null}
+      <div className={`media-fallback ${loaded ? '' : 'show'}`}>
         {logo ? <span className="media-logo-mark">{logo}</span> : null}
-        <span>No image</span>
+        <span>{loaded ? '' : 'No image'}</span>
       </div>
     </div>
   );
@@ -278,7 +312,7 @@ function BrandBoard({ brands, rosterByBrand, onImageChange }) {
     <div className="brand-board">
       {rosterByBrand.map((brand) => (
         <article key={brand.id} className="visual-card brand-visual" style={{ borderColor: brand.color, boxShadow: `0 18px 50px ${brand.color}20` }}>
-          <MediaThumb src={brand.imageUrl} alt={brand.name} logo={brand.name.slice(0, 2).toUpperCase()} />
+          <MediaThumb src={brand.imageUrl} fallbackSrc={createBrandArt(brand.name, brand.color)} alt={brand.name} logo={brand.name.slice(0, 2).toUpperCase()} />
           <div className="visual-content">
             <div className="mini-card-top">
               <div>
@@ -901,11 +935,11 @@ export default function App() {
           <div className="roster-grid">
             {state.roster.map((star) => (
               <article key={star.id} className="visual-card roster-card">
-                <MediaThumb src={star.imageUrl} alt={star.name} compact logo={star.name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()} />
+                <MediaThumb src={star.imageUrl} fallbackSrc={createSuperstarArt(star.name, brandMap[star.brandId]?.color || '#334155', star.division)} alt={star.name} compact logo={star.name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()} />
                 <div className="visual-content">
                   <div className="mini-card-top">
                     <strong className="display-name superstar-name">{star.name}</strong>
-                    <span className={`badge ${star.brandId ? 'brand-badge' : 'neutral'}`} style={star.brandId ? { background: `${brandMap[star.brandId]?.color || '#475569'}22`, color: brandMap[star.brandId]?.color || '#e2e8f0', borderColor: `${brandMap[star.brandId]?.color || '#475569'}66` } : undefined}>{star.brandId ? brandMap[star.brandId]?.name : 'Free Agent'}</span>
+                    <span className={`badge ${star.brandId ? 'brand-badge' : 'neutral'}`} style={star.brandId ? brandBadgeStyle(brandMap[star.brandId]?.color || '#e2e8f0') : undefined}>{star.brandId ? brandMap[star.brandId]?.name : 'Free Agent'}</span>
                   </div>
                   <div className="split-inputs compact-grid">
                     <select value={star.brandId || ''} onChange={(e) => updateSuperstar(star.id, 'brandId', e.target.value || null)}>
@@ -929,8 +963,8 @@ export default function App() {
                     <input value={star.imageUrl || ''} onChange={(e) => updateSuperstar(star.id, 'imageUrl', e.target.value)} placeholder="Image URL" />
                   </div>
                   <div className="roster-meta">
-                    <span>{star.alignment}</span>
-                    <span>{star.division}</span>
+                    <span className="meta-chip">{star.alignment}</span>
+                    <span className="meta-chip">{star.division}</span>
                   </div>
                   <button className="danger ghost" type="button" onClick={() => removeSuperstar(star.id)}>Remove</button>
                 </div>
@@ -1054,7 +1088,7 @@ export default function App() {
           <div className="card-list visual-list">
             {state.cards.map((card) => (
               <article key={card.id} className="visual-card show-card">
-                <MediaThumb src={card.imageUrl} alt={`${card.showName} ${card.episodeName}`} />
+                <MediaThumb src={card.imageUrl} fallbackSrc={createShowArt(card.showName, card.episodeName, brandMap[state.brands.find((brand) => brand.name === card.showName)?.id]?.color || '#7c3aed')} alt={`${card.showName} ${card.episodeName}`} />
                 <div className="visual-content">
                   <div className="mini-card-top">
                     <strong>{card.showName}</strong>

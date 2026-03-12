@@ -1,12 +1,10 @@
 import express from 'express';
-import cookieParser from 'cookie-parser';
-import { handleCreateUniverse, handleDeleteUniverse, handleListUniverses, handleLogin, handleLogout, handleRegister, handleSaveUniverse, handleSession } from './lib/routes.js';
+import { handleCreateUniverse, handleDeleteUniverse, handleListUniverses, handleLogin, handleLogout, handleRegister, handleSaveUniverse, handleSession } from '../api/_lib/routes.js';
 
 const app = express();
 const port = process.env.API_PORT || 3001;
 
 app.use(express.json({ limit: '1mb' }));
-app.use(cookieParser());
 
 app.get('/api/auth/session', (req, res) => handleSession(req, res));
 app.post('/api/auth/register', (req, res) => handleRegister(req, res, req.body));
