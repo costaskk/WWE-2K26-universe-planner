@@ -14,14 +14,22 @@ async function parseResponse(response) {
 }
 
 async function request(path, options = {}) {
-  const response = await fetch(path, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
+  let response;
+  try {
+    response = await fetch(path, {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      },
+      ...options,
+    });
+  } catch (error) {
+    const message = error instanceof TypeError
+      ? 'Failed to fetch. The API may be offline, missing environment variables, or not deployed correctly.'
+      : (error.message || 'Network request failed.');
+    throw new Error(message);
+  }
 
   return parseResponse(response);
 }

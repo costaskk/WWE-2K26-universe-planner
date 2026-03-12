@@ -1,88 +1,55 @@
-# WWE 2K26 Universe Planner
+# WWE 2K26 Universe & Creations Planner
 
-A Vite + React web app with a custom username/password auth system and multiple cloud save slots for WWE 2K26 Universe planning.
+React + Vite frontend with Vercel serverless API routes and Supabase Postgres storage.
 
-## What changed
+## What changed in this build
 
-This version no longer uses Supabase Auth.
-
-Instead it uses:
-- a custom `app_users` table
-- hashed passwords with `bcryptjs`
-- signed HttpOnly session cookies
-- Vercel serverless API routes
-- Supabase only as the database
-
-That means users can sign up with only:
-- username
-- password
-
-No personal email address is required.
-
-## Features
-
-- username + password registration
-- login/logout
-- multiple universe save slots per user
-- guest local save mode
-- brand split manager
-- roster editor
-- title assignment
-- rivalry tracker
-- weekly card builder
-- JSON import/export
+- Custom username/password auth with no email field in the UI
+- Multiple save slots per user
+- Fancy success/error modals and toast messages
+- Brand assignment checker for wrestlers
+- Image URL support for wrestlers, brands, and PPV/show cards
+- Better local dev script that starts both Vite and the API server
+- Missing backend dependencies fixed (`bcryptjs`, `jose`)
 
 ## Local development
 
 1. Copy `.env.example` to `.env`
-2. Fill in the environment variables
-3. Install dependencies
-4. Start the app
+2. Fill in the three environment variables
+3. Install packages
+4. Start both frontend and backend together
 
 ```bash
-cp .env.example .env
 npm install
 npm run dev
 ```
 
-Frontend runs on `http://localhost:5173`
-Backend API runs on `http://localhost:3001`
+Frontend: `http://localhost:5173`
+API: `http://localhost:3001`
 
-## Required environment variables
+## Environment variables
 
 ```env
 SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
-APP_JWT_SECRET=replace-this-with-a-long-random-secret
+SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
+APP_JWT_SECRET=make-this-a-long-random-secret
 ```
 
-## Supabase setup
+## Supabase SQL
 
-Open Supabase SQL Editor and run:
+Run `supabase/schema.sql` in the SQL editor.
 
-```sql
--- file: supabase/schema.sql
-```
+## Vercel deployment
 
-This creates:
-- `app_users`
-- `universes`
-
-## Deploy to Vercel
-
-1. Push the repo to GitHub
+1. Push the project to GitHub
 2. Import the repo into Vercel
-3. Add the three environment variables in Vercel
-4. Deploy
-
-### Vercel environment variables
-
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `APP_JWT_SECRET`
+3. Add these environment variables in Vercel Project Settings:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `APP_JWT_SECRET`
+4. Set Node.js version to `20.x`
+5. Redeploy
 
 ## Important
 
-- Never commit `.env`
-- Never expose `SUPABASE_SERVICE_ROLE_KEY` in frontend code
-- Rotate your old public key if you want, but this version does not need it anymore
+Do not commit `.env` or your `SUPABASE_SERVICE_ROLE_KEY`.

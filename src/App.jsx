@@ -6,6 +6,7 @@ import {
   defaultRoster,
   defaultRivalries,
   defaultTitles,
+  recommendedImageSources,
 } from './data';
 import { api } from './lib/api';
 import { downloadFile, loadState, saveState } from './utils';
@@ -30,7 +31,7 @@ const defaultRivalryForm = {
   notes: '',
 };
 
-const defaultCardForm = { showName: '', episodeName: '' };
+const defaultCardForm = { showName: '', episodeName: '', imageUrl: '' };
 
 const createMatchDraft = () => ({
   id: crypto.randomUUID(),
@@ -41,17 +42,14 @@ const createMatchDraft = () => ({
 
 function normalizeState(input) {
   const base = freshState();
-
-  if (!input || typeof input !== 'object') {
-    return base;
-  }
+  if (!input || typeof input !== 'object') return base;
 
   return {
-    brands: Array.isArray(input.brands) ? input.brands : base.brands,
-    roster: Array.isArray(input.roster) ? input.roster : base.roster,
+    brands: Array.isArray(input.brands) ? input.brands.map((brand) => ({ imageUrl: '', ...brand })) : base.brands,
+    roster: Array.isArray(input.roster) ? input.roster.map((star) => ({ imageUrl: '', ...star })) : base.roster,
     titles: Array.isArray(input.titles) ? input.titles : base.titles,
     rivalries: Array.isArray(input.rivalries) ? input.rivalries : base.rivalries,
-    cards: Array.isArray(input.cards) ? input.cards : base.cards,
+    cards: Array.isArray(input.cards) ? input.cards.map((card) => ({ imageUrl: '', ...card })) : base.cards,
   };
 }
 
@@ -64,6 +62,55 @@ function formatTimestamp(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Unknown';
   return date.toLocaleString();
+}
+
+function getErrorMessage(error, fallback) {
+  if (!error) return fallback;
+  if (error.name === 'TypeError' && /fetch/i.test(error.message || '')) {
+    return 'Could not reach the profile API. Check Vercel environment variables, API routes, and package dependencies, then redeploy.';
+  }
+  return error.message || fallback;
+}
+
+function Modal({ modal, onClose }) {
+  if (!modal) return null;
+
+  return (
+    <div className="modal-backdrop" onClick={onClose} role="presentation">
+      <div className={`modal-card ${modal.variant || 'info'}`} onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
+        <div className="modal-header">
+          <div>
+            <span className={`status-pill ${modal.variant || 'info'}`}>{modal.label || 'Notice'}</span>
+            <h3>{modal.title}</h3>
+          </div>
+          <button className="ghost-icon" type="button" onClick={onClose} aria-label="Close modal">×</button>
+        </div>
+        <p>{modal.message}</p>
+        {modal.details ? <pre className="modal-details">{modal.details}</pre> : null}
+        <div className="section-actions left">
+          <button type="button" onClick={onClose}>Got it</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Toast({ toast }) {
+  if (!toast) return null;
+  return (
+    <div className={`toast ${toast.variant || 'info'}`} role="status" aria-live="polite">
+      <strong>{toast.title}</strong>
+      <span>{toast.message}</span>
+    </div>
+  );
+}
+
+function MediaThumb({ src, alt, compact = false }) {
+  return (
+    <div className={`media-thumb ${compact ? 'compact' : ''}`}>
+      {src ? <img src={src} alt={alt} loading="lazy" /> : <div className="media-fallback">No image</div>}
+    </div>
+  );
 }
 
 function AuthPanel({
@@ -91,7 +138,7 @@ function AuthPanel({
           </p>
         </div>
         <div className="auth-actions">
-          <span className="status-pill">{cloudStatus}</span>
+          <span className="status-pill success">{cloudStatus}</span>
           <button className="secondary" onClick={onSignOut} type="button">Sign out</button>
         </div>
       </div>
@@ -128,7 +175,7 @@ function AuthPanel({
         <button type="submit" disabled={authBusy}>{authBusy ? 'Please wait...' : authMode === 'login' ? 'Sign in' : 'Create profile'}</button>
       </form>
       <p className="muted auth-hint">
-        Usernames must be 3 to 24 characters and can use letters, numbers, underscores, or dashes.
+        Usernames must be 3 to 24 characters and can use letters, numbers, underscores, or dashes. No email is stored.
       </p>
       {authMessage ? <p className="muted auth-message">{authMessage}</p> : null}
     </div>
@@ -172,10 +219,7 @@ function SlotPanel({
           </form>
           <div className="slot-list">
             {slots.map((slot) => (
-              <article
-                key={slot.id}
-                className={`slot-card ${slot.id === activeSlotId ? 'active' : ''}`}
-              >
+              <article key={slot.id} className={`slot-card ${slot.id === activeSlotId ? 'active' : ''}`}>
                 <div>
                   <strong>{slot.slot_name}</strong>
                   <p>Updated {formatTimestamp(slot.updated_at)}</p>
@@ -184,12 +228,7 @@ function SlotPanel({
                   <button type="button" className={slot.id === activeSlotId ? '' : 'secondary'} onClick={() => onSelectSlot(slot.id)}>
                     {slot.id === activeSlotId ? 'Active' : 'Open'}
                   </button>
-                  <button
-                    type="button"
-                    className="danger ghost"
-                    disabled={slots.length <= 1 || slotBusy}
-                    onClick={() => onDeleteSlot(slot.id)}
-                  >
+                  <button type="button" className="danger ghost" disabled={slots.length <= 1 || slotBusy} onClick={() => onDeleteSlot(slot.id)}>
                     Delete
                   </button>
                 </div>
@@ -207,11 +246,49 @@ function SlotPanel({
   );
 }
 
+function BrandBoard({ brands, rosterByBrand, onImageChange }) {
+  return (
+    <div className="brand-board">
+      {rosterByBrand.map((brand) => (
+        <article key={brand.id} className="visual-card brand-visual" style={{ borderColor: brand.color }}>
+          <MediaThumb src={brand.imageUrl} alt={brand.name} />
+          <div className="visual-content">
+            <div className="mini-card-top">
+              <strong>{brand.name}</strong>
+              <span className="badge neutral">{brand.stars.length} assigned</span>
+            </div>
+            <input value={brand.imageUrl || ''} onChange={(event) => onImageChange(brand.id, event.target.value)} placeholder="Brand image URL" />
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function SourceLibrary() {
+  return (
+    <div className="source-library">
+      {recommendedImageSources.map((source) => (
+        <article key={source.name} className="mini-card source-card">
+          <div className="mini-card-top">
+            <strong>{source.name}</strong>
+            <span className="badge neutral">{source.type}</span>
+          </div>
+          <p>{source.note}</p>
+          <a href={source.url} target="_blank" rel="noreferrer">Open source</a>
+        </article>
+      ))}
+    </div>
+  );
+}
+
 export default function App() {
   const [state, setState] = useState(() => loadState(STORAGE_KEY, freshState()));
   const [brandName, setBrandName] = useState('');
   const [brandColor, setBrandColor] = useState('#7c3aed');
   const [rosterName, setRosterName] = useState('');
+  const [rosterImageUrl, setRosterImageUrl] = useState('');
+  const [brandImageUrl, setBrandImageUrl] = useState('');
   const [rivalryForm, setRivalryForm] = useState(defaultRivalryForm);
   const [cardForm, setCardForm] = useState(defaultCardForm);
   const [matchDrafts, setMatchDrafts] = useState([createMatchDraft()]);
@@ -225,9 +302,26 @@ export default function App() {
   const [activeSlotId, setActiveSlotId] = useState(() => localStorage.getItem(ACTIVE_SLOT_STORAGE_KEY) || null);
   const [slotName, setSlotName] = useState('');
   const [slotBusy, setSlotBusy] = useState(false);
+  const [modal, setModal] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [assignmentLookupId, setAssignmentLookupId] = useState('');
 
   const skipNextCloudSave = useRef(false);
   const cloudHydratedForUser = useRef(null);
+
+  const showToast = (title, message, variant = 'info') => {
+    setToast({ title, message, variant });
+  };
+
+  const showModal = (title, message, variant = 'info', details = '') => {
+    setModal({ title, message, variant, details, label: variant === 'error' ? 'Problem' : variant === 'success' ? 'Success' : 'Info' });
+  };
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timeoutId = window.setTimeout(() => setToast(null), 2800);
+    return () => window.clearTimeout(timeoutId);
+  }, [toast]);
 
   useEffect(() => {
     saveState(STORAGE_KEY, state);
@@ -253,8 +347,10 @@ export default function App() {
       })
       .catch((error) => {
         if (!mounted) return;
-        setAuthMessage(error.message || 'Could not reach the profile server.');
+        const message = getErrorMessage(error, 'Could not reach the profile server.');
+        setAuthMessage(message);
         setCloudStatus('Profiles unavailable');
+        showModal('API connection problem', message, 'error');
       });
 
     return () => {
@@ -293,9 +389,12 @@ export default function App() {
         setState(normalizeState(selected.data));
         setCloudStatus(`Loaded ${selected.slot_name}`);
         cloudHydratedForUser.current = session.user.id;
+        showToast('Profile loaded', `Welcome back, @${session.user.username}.`, 'success');
       } catch (error) {
+        const message = getErrorMessage(error, 'Could not load your universes.');
         setCloudStatus('Cloud load failed');
-        setAuthMessage(error.message || 'Could not load your universes.');
+        setAuthMessage(message);
+        showModal('Could not load cloud saves', message, 'error');
       }
     };
 
@@ -335,10 +434,7 @@ export default function App() {
     }));
   }, [state.brands, state.roster]);
 
-  const freeAgents = useMemo(
-    () => state.roster.filter((star) => !star.brandId),
-    [state.roster]
-  );
+  const freeAgents = useMemo(() => state.roster.filter((star) => !star.brandId), [state.roster]);
 
   const summary = useMemo(() => {
     const champions = state.titles.filter((title) => title.holderId).length;
@@ -348,6 +444,7 @@ export default function App() {
       rivalries: state.rivalries.length,
       cards: state.cards.length,
       champions,
+      assigned: state.roster.filter((star) => star.brandId).length,
     };
   }, [state]);
 
@@ -356,18 +453,22 @@ export default function App() {
     [saveSlots, activeSlotId]
   );
 
+  const assignmentLookupStar = useMemo(
+    () => state.roster.find((star) => star.id === assignmentLookupId) || null,
+    [assignmentLookupId, state.roster]
+  );
+
   async function createCloudSlot(name, sourceState = freshState()) {
     if (!session?.user?.id) return null;
 
     try {
-      const response = await api.createUniverse({
-        slotName: name.trim(),
-        data: normalizeState(sourceState),
-      });
+      const response = await api.createUniverse({ slotName: name.trim(), data: normalizeState(sourceState) });
       return response.universe;
     } catch (error) {
-      setAuthMessage(error.message || 'Could not create save slot.');
+      const message = getErrorMessage(error, 'Could not create save slot.');
+      setAuthMessage(message);
       setCloudStatus('Cloud save failed');
+      showModal('Save slot failed', message, 'error');
       return null;
     }
   }
@@ -378,10 +479,7 @@ export default function App() {
     setCloudStatus('Saving to cloud…');
 
     try {
-      const response = await api.saveUniverse({
-        id: slotId,
-        data: normalizeState(nextState),
-      });
+      const response = await api.saveUniverse({ id: slotId, data: normalizeState(nextState) });
       const saved = response.universe;
       setSaveSlots((current) => {
         const next = current.some((slot) => slot.id === saved.id)
@@ -391,8 +489,10 @@ export default function App() {
       });
       setCloudStatus(successLabel);
     } catch (error) {
+      const message = getErrorMessage(error, 'Could not save your universe.');
       setCloudStatus('Cloud save failed');
-      setAuthMessage(error.message || 'Could not save your universe.');
+      setAuthMessage(message);
+      showModal('Autosave failed', message, 'error');
     }
   }
 
@@ -405,9 +505,15 @@ export default function App() {
     if (!brandName.trim()) return;
     updateStateList('brands', (brands) => [
       ...brands,
-      { id: crypto.randomUUID(), name: brandName.trim(), color: brandColor },
+      { id: crypto.randomUUID(), name: brandName.trim(), color: brandColor, imageUrl: brandImageUrl.trim() },
     ]);
     setBrandName('');
+    setBrandImageUrl('');
+    showToast('Brand added', `${brandName.trim()} is ready for your draft.`, 'success');
+  };
+
+  const updateBrand = (id, field, value) => {
+    updateStateList('brands', (brands) => brands.map((brand) => (brand.id === id ? { ...brand, [field]: value } : brand)));
   };
 
   const addSuperstar = (event) => {
@@ -421,9 +527,12 @@ export default function App() {
         brandId: null,
         alignment: 'Face',
         division: 'Main Event',
+        imageUrl: rosterImageUrl.trim(),
       },
     ]);
     setRosterName('');
+    setRosterImageUrl('');
+    showToast('Superstar added', 'Roster updated successfully.', 'success');
   };
 
   const updateSuperstar = (id, field, value) => {
@@ -433,6 +542,7 @@ export default function App() {
   const removeSuperstar = (id) => {
     updateStateList('roster', (roster) => roster.filter((star) => star.id !== id));
     updateStateList('titles', (titles) => titles.map((title) => (title.holderId === id ? { ...title, holderId: null } : title)));
+    showToast('Roster updated', 'The superstar was removed from this universe.', 'info');
   };
 
   const updateTitle = (id, field, value) => {
@@ -454,6 +564,7 @@ export default function App() {
       },
     ]);
     setRivalryForm(defaultRivalryForm);
+    showToast('Rivalry added', 'Storyline tracker updated.', 'success');
   };
 
   const removeRivalry = (id) => {
@@ -464,13 +575,8 @@ export default function App() {
     setMatchDrafts((matches) => matches.map((match) => (match.id === id ? { ...match, [field]: value } : match)));
   };
 
-  const addMatchDraft = () => {
-    setMatchDrafts((matches) => [...matches, createMatchDraft()]);
-  };
-
-  const removeMatchDraft = (id) => {
-    setMatchDrafts((matches) => matches.filter((match) => match.id !== id));
-  };
+  const addMatchDraft = () => setMatchDrafts((matches) => [...matches, createMatchDraft()]);
+  const removeMatchDraft = (id) => setMatchDrafts((matches) => matches.filter((match) => match.id !== id));
 
   const addCard = (event) => {
     event.preventDefault();
@@ -480,12 +586,14 @@ export default function App() {
         id: crypto.randomUUID(),
         showName: cardForm.showName.trim(),
         episodeName: cardForm.episodeName.trim(),
+        imageUrl: cardForm.imageUrl.trim(),
         matches: matchDrafts.filter((match) => match.participants.trim()).map((match) => ({ ...match })),
       },
       ...cards,
     ]);
     setCardForm(defaultCardForm);
     setMatchDrafts([createMatchDraft()]);
+    showToast('Show card saved', 'Your weekly card is now part of this universe.', 'success');
   };
 
   const removeCard = (id) => {
@@ -494,6 +602,7 @@ export default function App() {
 
   const exportUniverse = () => {
     downloadFile(`wwe2k26-${activeSlotName.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'universe'}-export.json`, JSON.stringify(state, null, 2));
+    showToast('Export ready', 'Universe JSON downloaded.', 'success');
   };
 
   const resetUniverse = () => {
@@ -501,6 +610,7 @@ export default function App() {
     setState(reset);
     saveState(STORAGE_KEY, reset);
     setAuthMessage('Universe reset to demo data.');
+    showModal('Universe reset', 'Demo data has been restored for this slot.', 'success');
   };
 
   const importUniverse = async (event) => {
@@ -511,8 +621,10 @@ export default function App() {
       const parsed = JSON.parse(text);
       setState(normalizeState(parsed));
       setAuthMessage('Universe imported successfully.');
-    } catch (error) {
+      showModal('Import complete', 'Your universe JSON imported correctly.', 'success');
+    } catch {
       setAuthMessage('Import failed. Please use a valid planner JSON export.');
+      showModal('Import failed', 'That file could not be read as a valid planner export.', 'error');
     } finally {
       event.target.value = '';
     }
@@ -520,11 +632,12 @@ export default function App() {
 
   const handleAuthSubmit = async (event) => {
     event.preventDefault();
-
     const username = authForm.username.trim();
 
     if (!isValidUsername(username)) {
-      setAuthMessage('Choose a username between 3 and 24 characters using letters, numbers, underscores, or dashes.');
+      const message = 'Choose a username between 3 and 24 characters using letters, numbers, underscores, or dashes.';
+      setAuthMessage(message);
+      showModal('Username not valid', message, 'error');
       return;
     }
 
@@ -543,8 +656,17 @@ export default function App() {
       setCloudStatus(nextSession ? 'Syncing cloud save…' : 'Signed out');
       setAuthMessage(authMode === 'register' ? 'Profile created.' : 'Welcome back.');
       setAuthForm({ username: '', password: '' });
+      showModal(
+        authMode === 'register' ? 'Profile created successfully' : 'Signed in successfully',
+        authMode === 'register'
+          ? `Your username @${response.user.username} is ready. No email address was stored.`
+          : `Welcome back, @${response.user.username}. Your active save slots will load now.`,
+        'success'
+      );
     } catch (error) {
-      setAuthMessage(error.message || 'Authentication failed.');
+      const message = getErrorMessage(error, 'Authentication failed.');
+      setAuthMessage(message);
+      showModal('Could not complete authentication', message, 'error', message.includes('package dependencies') ? 'If this is on Vercel, make sure bcryptjs and jose are installed and redeployed.' : '');
     } finally {
       setAuthBusy(false);
     }
@@ -558,8 +680,11 @@ export default function App() {
       setActiveSlotId(null);
       setCloudStatus('Signed out');
       setAuthMessage('Signed out. Your guest browser copy is still available on this device.');
+      showToast('Signed out', 'Guest mode is still available on this browser.', 'info');
     } catch (error) {
-      setAuthMessage(error.message || 'Could not sign out.');
+      const message = getErrorMessage(error, 'Could not sign out.');
+      setAuthMessage(message);
+      showModal('Sign-out failed', message, 'error');
     }
   };
 
@@ -569,7 +694,9 @@ export default function App() {
 
     const trimmedName = slotName.trim();
     if (saveSlots.some((slot) => slot.slot_name.toLowerCase() === trimmedName.toLowerCase())) {
-      setAuthMessage('Choose a different slot name.');
+      const message = 'Choose a different slot name.';
+      setAuthMessage(message);
+      showModal('Duplicate slot name', message, 'error');
       return;
     }
 
@@ -582,6 +709,7 @@ export default function App() {
       setState(normalizeState(created.data));
       setCloudStatus(`Created ${created.slot_name}`);
       setSlotName('');
+      showModal('New save slot created', `${created.slot_name} is ready for its own brand split and roster.`, 'success');
     }
     setSlotBusy(false);
   };
@@ -595,12 +723,15 @@ export default function App() {
     setActiveSlotId(slot.id);
     setState(normalizeState(slot.data));
     setCloudStatus(`Loaded ${slot.slot_name}`);
+    showToast('Save slot loaded', `${slot.slot_name} is now active.`, 'success');
   };
 
   const handleDeleteSlot = async (slotId) => {
     if (!session?.user?.id) return;
     if (saveSlots.length <= 1) {
-      setAuthMessage('Keep at least one universe slot.');
+      const message = 'Keep at least one universe slot.';
+      setAuthMessage(message);
+      showModal('Cannot delete final slot', message, 'error');
       return;
     }
 
@@ -621,8 +752,11 @@ export default function App() {
       }
 
       setAuthMessage(`Deleted ${slot.slot_name}.`);
+      showToast('Save slot deleted', `${slot.slot_name} was removed.`, 'info');
     } catch (error) {
-      setAuthMessage(error.message || 'Could not delete that slot.');
+      const message = getErrorMessage(error, 'Could not delete that slot.');
+      setAuthMessage(message);
+      showModal('Delete failed', message, 'error');
     } finally {
       setSlotBusy(false);
     }
@@ -630,13 +764,16 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      <Toast toast={toast} />
+      <Modal modal={modal} onClose={() => setModal(null)} />
+
       <header className="hero">
         <div>
           <span className="eyebrow">WWE 2K26 companion MVP</span>
           <h1>Universe &amp; Creations Planner</h1>
           <p>
-            Manage brand splits, champions, rivalries, and weekly cards in one place. This version now supports simple
-            usernames, multiple save slots, and synced profiles without storing personal email addresses.
+            Manage brand splits, champions, rivalries, and weekly cards in one place. This build adds custom username auth,
+            multiple cloud slots, visual media cards, and clearer success/error messaging.
           </p>
         </div>
         <div className="hero-actions">
@@ -650,10 +787,7 @@ export default function App() {
       </header>
 
       <div className="grid two-column auth-layout">
-        <SectionCard
-          title="Player Profiles"
-          subtitle="Use a username and password for cloud saves. Guests can still use the app locally."
-        >
+        <SectionCard title="Player Profiles" subtitle="Use a username and password for cloud saves. Guests can still use the app locally.">
           <AuthPanel
             session={session}
             authMode={authMode}
@@ -669,10 +803,7 @@ export default function App() {
           />
         </SectionCard>
 
-        <SectionCard
-          title="Save Slots"
-          subtitle="Keep separate universes for WWE, AEW-style setups, legends eras, or custom promotions."
-        >
+        <SectionCard title="Save Slots" subtitle="Keep separate universes for WWE, AEW-style setups, legends eras, or custom promotions.">
           <SlotPanel
             session={session}
             slots={saveSlots}
@@ -690,6 +821,7 @@ export default function App() {
       <section className="stats-grid">
         <article><strong>{summary.brands}</strong><span>Brands</span></article>
         <article><strong>{summary.superstars}</strong><span>Superstars</span></article>
+        <article><strong>{summary.assigned}</strong><span>Assigned to Brands</span></article>
         <article><strong>{summary.champions}</strong><span>Assigned Titles</span></article>
         <article><strong>{summary.rivalries}</strong><span>Rivalries</span></article>
         <article><strong>{summary.cards}</strong><span>Show Cards</span></article>
@@ -698,79 +830,81 @@ export default function App() {
       <div className="grid two-column">
         <SectionCard
           title="Brands"
-          subtitle="Create shows or promotions and track each roster bucket."
+          subtitle="Create shows or promotions, add artwork, and track each roster bucket."
           actions={
             <form className="inline-form" onSubmit={addBrand}>
               <input value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder="New brand" />
               <input type="color" value={brandColor} onChange={(e) => setBrandColor(e.target.value)} aria-label="Brand color" />
+              <input value={brandImageUrl} onChange={(e) => setBrandImageUrl(e.target.value)} placeholder="Brand image URL" />
               <button type="submit">Add</button>
             </form>
           }
         >
-          <div className="brand-list">
-            {rosterByBrand.map((brand) => (
-              <div key={brand.id} className="brand-pill" style={{ borderColor: brand.color }}>
-                <div>
-                  <strong>{brand.name}</strong>
-                  <span>{brand.stars.length} assigned</span>
-                </div>
-                <div className="brand-pill">
-                  <span className="color-dot" style={{ background: brand.color }} />
-                </div>
-              </div>
-            ))}
-          </div>
+          <BrandBoard brands={state.brands} rosterByBrand={rosterByBrand} onImageChange={(id, value) => updateBrand(id, 'imageUrl', value)} />
         </SectionCard>
 
-        <SectionCard title="Roster" subtitle="Assign superstars, factions, and teams to brands and divisions.">
+        <SectionCard title="Roster" subtitle="Assign superstars, check who is on a brand, and add render URLs when you have them.">
           <form className="inline-form" onSubmit={addSuperstar}>
             <input value={rosterName} onChange={(e) => setRosterName(e.target.value)} placeholder="Add superstar or team" />
+            <input value={rosterImageUrl} onChange={(e) => setRosterImageUrl(e.target.value)} placeholder="Superstar image URL" />
             <button type="submit">Add</button>
           </form>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Brand</th>
-                  <th>Alignment</th>
-                  <th>Division</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {state.roster.map((star) => (
-                  <tr key={star.id}>
-                    <td>{star.name}</td>
-                    <td>
-                      <select value={star.brandId || ''} onChange={(e) => updateSuperstar(star.id, 'brandId', e.target.value || null)}>
-                        <option value="">Free Agent</option>
-                        {state.brands.map((brand) => (
-                          <option key={brand.id} value={brand.id}>{brand.name}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <select value={star.alignment} onChange={(e) => updateSuperstar(star.id, 'alignment', e.target.value)}>
-                        <option>Face</option>
-                        <option>Heel</option>
-                        <option>Tweener</option>
-                      </select>
-                    </td>
-                    <td>
-                      <select value={star.division} onChange={(e) => updateSuperstar(star.id, 'division', e.target.value)}>
-                        <option>Main Event</option>
-                        <option>Midcard</option>
-                        <option>Women</option>
-                        <option>Tag</option>
-                        <option>Legends</option>
-                      </select>
-                    </td>
-                    <td><button className="danger ghost" type="button" onClick={() => removeSuperstar(star.id)}>Remove</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          <div className="lookup-panel">
+            <strong>Brand assignment check</strong>
+            <div className="split-inputs">
+              <select value={assignmentLookupId} onChange={(event) => setAssignmentLookupId(event.target.value)}>
+                <option value="">Select a wrestler</option>
+                {state.roster.map((star) => <option key={star.id} value={star.id}>{star.name}</option>)}
+              </select>
+              <div className="lookup-result">
+                {assignmentLookupStar
+                  ? assignmentLookupStar.brandId
+                    ? `${assignmentLookupStar.name} is assigned to ${brandMap[assignmentLookupStar.brandId]?.name || 'Unknown brand'}.`
+                    : `${assignmentLookupStar.name} is currently a free agent.`
+                  : 'Pick a wrestler to check their brand status.'}
+              </div>
+            </div>
+          </div>
+
+          <div className="roster-grid">
+            {state.roster.map((star) => (
+              <article key={star.id} className="visual-card roster-card">
+                <MediaThumb src={star.imageUrl} alt={star.name} compact />
+                <div className="visual-content">
+                  <div className="mini-card-top">
+                    <strong>{star.name}</strong>
+                    <span className={`badge ${star.brandId ? 'success' : 'neutral'}`}>{star.brandId ? brandMap[star.brandId]?.name : 'Free Agent'}</span>
+                  </div>
+                  <div className="split-inputs compact-grid">
+                    <select value={star.brandId || ''} onChange={(e) => updateSuperstar(star.id, 'brandId', e.target.value || null)}>
+                      <option value="">Free Agent</option>
+                      {state.brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
+                    </select>
+                    <select value={star.alignment} onChange={(e) => updateSuperstar(star.id, 'alignment', e.target.value)}>
+                      <option>Face</option>
+                      <option>Heel</option>
+                      <option>Tweener</option>
+                    </select>
+                  </div>
+                  <div className="split-inputs compact-grid">
+                    <select value={star.division} onChange={(e) => updateSuperstar(star.id, 'division', e.target.value)}>
+                      <option>Main Event</option>
+                      <option>Midcard</option>
+                      <option>Women</option>
+                      <option>Tag</option>
+                      <option>Legends</option>
+                    </select>
+                    <input value={star.imageUrl || ''} onChange={(e) => updateSuperstar(star.id, 'imageUrl', e.target.value)} placeholder="Image URL" />
+                  </div>
+                  <div className="roster-meta">
+                    <span>{star.alignment}</span>
+                    <span>{star.division}</span>
+                  </div>
+                  <button className="danger ghost" type="button" onClick={() => removeSuperstar(star.id)}>Remove</button>
+                </div>
+              </article>
+            ))}
           </div>
           {freeAgents.length ? <p className="muted">Free agents: {freeAgents.map((star) => star.name).join(', ')}</p> : null}
         </SectionCard>
@@ -794,17 +928,13 @@ export default function App() {
                     <td>
                       <select value={title.brandId || ''} onChange={(e) => updateTitle(title.id, 'brandId', e.target.value)}>
                         <option value="">Any brand</option>
-                        {state.brands.map((brand) => (
-                          <option key={brand.id} value={brand.id}>{brand.name}</option>
-                        ))}
+                        {state.brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
                       </select>
                     </td>
                     <td>
                       <select value={title.holderId || ''} onChange={(e) => updateTitle(title.id, 'holderId', e.target.value)}>
                         <option value="">Vacant</option>
-                        {state.roster.map((star) => (
-                          <option key={star.id} value={star.id}>{star.name}</option>
-                        ))}
+                        {state.roster.map((star) => <option key={star.id} value={star.id}>{star.name}</option>)}
                       </select>
                     </td>
                   </tr>
@@ -852,12 +982,13 @@ export default function App() {
       </div>
 
       <div className="grid two-column">
-        <SectionCard title="Weekly Card Builder" subtitle="Draft a show and save the matches as a reusable weekly card.">
+        <SectionCard title="Weekly Card Builder" subtitle="Draft a show, add a poster image, and save the matches as a reusable weekly card.">
           <form className="stack-form" onSubmit={addCard}>
             <div className="split-inputs">
               <input placeholder="Show name" value={cardForm.showName} onChange={(e) => setCardForm((f) => ({ ...f, showName: e.target.value }))} />
               <input placeholder="Episode or PPV" value={cardForm.episodeName} onChange={(e) => setCardForm((f) => ({ ...f, episodeName: e.target.value }))} />
             </div>
+            <input placeholder="Poster / PPV image URL" value={cardForm.imageUrl} onChange={(e) => setCardForm((f) => ({ ...f, imageUrl: e.target.value }))} />
             {matchDrafts.map((match) => (
               <div key={match.id} className="match-builder">
                 <div className="split-inputs">
@@ -877,11 +1008,7 @@ export default function App() {
                     <option>Falls Count Anywhere</option>
                   </select>
                 </div>
-                <input
-                  placeholder="Participants, e.g. Gunther vs Randy Orton"
-                  value={match.participants}
-                  onChange={(e) => updateMatchDraft(match.id, 'participants', e.target.value)}
-                />
+                <input placeholder="Participants, e.g. Gunther vs Randy Orton" value={match.participants} onChange={(e) => updateMatchDraft(match.id, 'participants', e.target.value)} />
                 {matchDrafts.length > 1 ? <button className="danger ghost" type="button" onClick={() => removeMatchDraft(match.id)}>Remove Match</button> : null}
               </div>
             ))}
@@ -893,32 +1020,40 @@ export default function App() {
         </SectionCard>
 
         <SectionCard title="Saved Cards" subtitle="Use these as weekly booking references or export the universe snapshot.">
-          <div className="card-list">
+          <div className="card-list visual-list">
             {state.cards.map((card) => (
-              <article key={card.id} className="mini-card">
-                <div className="mini-card-top">
-                  <strong>{card.showName}</strong>
-                  <span className="badge neutral">{card.episodeName}</span>
+              <article key={card.id} className="visual-card show-card">
+                <MediaThumb src={card.imageUrl} alt={`${card.showName} ${card.episodeName}`} />
+                <div className="visual-content">
+                  <div className="mini-card-top">
+                    <strong>{card.showName}</strong>
+                    <span className="badge neutral">{card.episodeName}</span>
+                  </div>
+                  <ol>
+                    {card.matches.map((match) => (
+                      <li key={match.id}>
+                        <span>{match.participants}</span>
+                        <small>{match.matchType} · {match.stipulation}</small>
+                      </li>
+                    ))}
+                  </ol>
+                  <input value={card.imageUrl || ''} onChange={(e) => updateStateList('cards', (cards) => cards.map((entry) => entry.id === card.id ? { ...entry, imageUrl: e.target.value } : entry))} placeholder="Poster image URL" />
+                  <button className="danger ghost" type="button" onClick={() => removeCard(card.id)}>Delete Card</button>
                 </div>
-                <ol>
-                  {card.matches.map((match) => (
-                    <li key={match.id}>
-                      <span>{match.participants}</span>
-                      <small>{match.matchType} · {match.stipulation}</small>
-                    </li>
-                  ))}
-                </ol>
-                <button className="danger ghost" type="button" onClick={() => removeCard(card.id)}>Delete Card</button>
               </article>
             ))}
           </div>
         </SectionCard>
       </div>
 
+      <SectionCard title="Free image source ideas" subtitle="Use these when you want legitimate artwork sources for wrestler photos, logos, brand art, and generic PPV backgrounds.">
+        <SourceLibrary />
+      </SectionCard>
+
       <footer className="footer-note">
         <p>
-          Built as an MVP starter. This version includes username-based profiles, multiple cloud save slots, and browser-only
-          guest mode for quick testing.
+          Built as an MVP starter. This version includes custom username-based profiles, multiple cloud save slots, visual media cards,
+          and guest mode for quick testing.
         </p>
         <p>
           Current assigned champions:{' '}
