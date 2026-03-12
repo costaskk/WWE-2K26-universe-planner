@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import SectionCard from './components/SectionCard';
 import {
   defaultBrands,
@@ -7,6 +7,7 @@ import {
   defaultRivalries,
   defaultTitles,
 } from './data';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { downloadFile, loadState, saveState } from './utils';
 
 const STORAGE_KEY = 'wwe2k26-universe-planner';
@@ -19,18 +20,226 @@ const freshState = () => ({
   cards: defaultCards,
 });
 
+const defaultRivalryForm = {
+  superstarA: '',
+  superstarB: '',
+  brandId: '',
+  intensity: 'Medium',
+  notes: '',
+};
+
+const defaultCardForm = { showName: '', episodeName: '' };
+
+const createMatchDraft = () => ({
+  id: crypto.randomUUID(),
+  matchType: 'Singles',
+  stipulation: 'Standard',
+  participants: '',
+});
+
+function normalizeState(input) {
+  const base = freshState();
+
+  if (!input || typeof input !== 'object') {
+    return base;
+  }
+
+  return {
+    brands: Array.isArray(input.brands) ? input.brands : base.brands,
+    roster: Array.isArray(input.roster) ? input.roster : base.roster,
+    titles: Array.isArray(input.titles) ? input.titles : base.titles,
+    rivalries: Array.isArray(input.rivalries) ? input.rivalries : base.rivalries,
+    cards: Array.isArray(input.cards) ? input.cards : base.cards,
+  };
+}
+
+function AuthPanel({
+  session,
+  authMode,
+  setAuthMode,
+  authForm,
+  setAuthForm,
+  authBusy,
+  authMessage,
+  onSubmit,
+  onSignOut,
+  configured,
+  cloudStatus,
+}) {
+  if (!configured) {
+    return (
+      <div className="auth-panel">
+        <strong>Cloud accounts are not configured yet.</strong>
+        <p>
+          Add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to enable registration, login,
+          and cloud saves.
+        </p>
+      </div>
+    );
+  }
+
+  if (session?.user) {
+    const userName = session.user.user_metadata?.display_name || session.user.email;
+
+    return (
+      <div className="auth-panel signed-in">
+        <div>
+          <strong>Signed in as {userName}</strong>
+          <p>Your universe autosaves to your account and follows you across devices.</p>
+        </div>
+        <div className="auth-actions">
+          <span className="status-pill">{cloudStatus}</span>
+          <button className="secondary" onClick={onSignOut}>Sign out</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="auth-panel">
+      <div className="auth-switcher">
+        <button className={authMode === 'login' ? '' : 'secondary'} type="button" onClick={() => setAuthMode('login')}>
+          Login
+        </button>
+        <button className={authMode === 'register' ? '' : 'secondary'} type="button" onClick={() => setAuthMode('register')}>
+          Register
+        </button>
+      </div>
+      <form className="stack-form auth-form" onSubmit={onSubmit}>
+        {authMode === 'register' ? (
+          <input
+            value={authForm.displayName}
+            onChange={(event) => setAuthForm((current) => ({ ...current, displayName: event.target.value }))}
+            placeholder="Display name"
+          />
+        ) : null}
+        <input
+          type="email"
+          autoComplete="email"
+          value={authForm.email}
+          onChange={(event) => setAuthForm((current) => ({ ...current, email: event.target.value }))}
+          placeholder="Email"
+          required
+        />
+        <input
+          type="password"
+          autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+          value={authForm.password}
+          onChange={(event) => setAuthForm((current) => ({ ...current, password: event.target.value }))}
+          placeholder="Password"
+          minLength={6}
+          required
+        />
+        <button type="submit" disabled={authBusy}>{authBusy ? 'Please wait...' : authMode === 'login' ? 'Sign in' : 'Create account'}</button>
+      </form>
+      <p className="muted auth-hint">
+        Use registration to keep your drafts, rosters, titles, and rivalries saved in the cloud.
+      </p>
+      {authMessage ? <p className="muted auth-message">{authMessage}</p> : null}
+    </div>
+  );
+}
+
 export default function App() {
   const [state, setState] = useState(() => loadState(STORAGE_KEY, freshState()));
   const [brandName, setBrandName] = useState('');
   const [brandColor, setBrandColor] = useState('#7c3aed');
   const [rosterName, setRosterName] = useState('');
-  const [rivalryForm, setRivalryForm] = useState({ superstarA: '', superstarB: '', brandId: '', intensity: 'Medium', notes: '' });
-  const [cardForm, setCardForm] = useState({ showName: '', episodeName: '' });
-  const [matchDrafts, setMatchDrafts] = useState([{ id: crypto.randomUUID(), matchType: 'Singles', stipulation: 'Standard', participants: '' }]);
+  const [rivalryForm, setRivalryForm] = useState(defaultRivalryForm);
+  const [cardForm, setCardForm] = useState(defaultCardForm);
+  const [matchDrafts, setMatchDrafts] = useState([createMatchDraft()]);
+  const [session, setSession] = useState(null);
+  const [authMode, setAuthMode] = useState('login');
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authMessage, setAuthMessage] = useState('');
+  const [authForm, setAuthForm] = useState({ email: '', password: '', displayName: '' });
+  const [cloudStatus, setCloudStatus] = useState(isSupabaseConfigured ? 'Checking cloud…' : 'Local only');
+
+  const skipNextCloudSave = useRef(false);
+  const cloudHydratedForUser = useRef(null);
 
   useEffect(() => {
     saveState(STORAGE_KEY, state);
   }, [state]);
+
+  useEffect(() => {
+    if (!supabase) return undefined;
+
+    let mounted = true;
+
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!mounted) return;
+      if (error) {
+        setAuthMessage(error.message);
+        setCloudStatus('Cloud unavailable');
+        return;
+      }
+      setSession(data.session ?? null);
+      setCloudStatus(data.session ? 'Syncing cloud save…' : 'Signed out');
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession ?? null);
+      setCloudStatus(nextSession ? 'Syncing cloud save…' : 'Signed out');
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!supabase || !session?.user?.id) {
+      cloudHydratedForUser.current = null;
+      return;
+    }
+
+    const hydrateCloudSave = async () => {
+      setCloudStatus('Loading your universe…');
+      const { data, error } = await supabase
+        .from('universes')
+        .select('data')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      if (error) {
+        setCloudStatus('Cloud load failed');
+        setAuthMessage(error.message);
+        return;
+      }
+
+      if (data?.data) {
+        skipNextCloudSave.current = true;
+        setState(normalizeState(data.data));
+        setCloudStatus('Cloud save loaded');
+      } else {
+        await saveUniverseToCloud(state, 'First cloud save created');
+      }
+
+      cloudHydratedForUser.current = session.user.id;
+    };
+
+    hydrateCloudSave();
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (!supabase || !session?.user?.id) return;
+    if (cloudHydratedForUser.current !== session.user.id) return;
+
+    if (skipNextCloudSave.current) {
+      skipNextCloudSave.current = false;
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      saveUniverseToCloud(state, 'All changes saved');
+    }, 900);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [state, session?.user?.id]);
 
   const brandMap = useMemo(
     () => Object.fromEntries(state.brands.map((brand) => [brand.id, brand])),
@@ -64,6 +273,28 @@ export default function App() {
       champions,
     };
   }, [state]);
+
+  async function saveUniverseToCloud(nextState, successLabel = 'All changes saved') {
+    if (!supabase || !session?.user?.id) return;
+
+    const payload = {
+      user_id: session.user.id,
+      display_name: session.user.user_metadata?.display_name || null,
+      data: normalizeState(nextState),
+      updated_at: new Date().toISOString(),
+    };
+
+    setCloudStatus('Saving to cloud…');
+    const { error } = await supabase.from('universes').upsert(payload);
+
+    if (error) {
+      setCloudStatus('Cloud save failed');
+      setAuthMessage(error.message);
+      return;
+    }
+
+    setCloudStatus(successLabel);
+  }
 
   const updateStateList = (key, updater) => {
     setState((current) => ({ ...current, [key]: updater(current[key]) }));
@@ -122,7 +353,7 @@ export default function App() {
         notes: rivalryForm.notes.trim(),
       },
     ]);
-    setRivalryForm({ superstarA: '', superstarB: '', brandId: '', intensity: 'Medium', notes: '' });
+    setRivalryForm(defaultRivalryForm);
   };
 
   const removeRivalry = (id) => {
@@ -134,10 +365,7 @@ export default function App() {
   };
 
   const addMatchDraft = () => {
-    setMatchDrafts((matches) => [
-      ...matches,
-      { id: crypto.randomUUID(), matchType: 'Singles', stipulation: 'Standard', participants: '' },
-    ]);
+    setMatchDrafts((matches) => [...matches, createMatchDraft()]);
   };
 
   const removeMatchDraft = (id) => {
@@ -156,8 +384,8 @@ export default function App() {
       },
       ...cards,
     ]);
-    setCardForm({ showName: '', episodeName: '' });
-    setMatchDrafts([{ id: crypto.randomUUID(), matchType: 'Singles', stipulation: 'Standard', participants: '' }]);
+    setCardForm(defaultCardForm);
+    setMatchDrafts([createMatchDraft()]);
   };
 
   const removeCard = (id) => {
@@ -177,10 +405,67 @@ export default function App() {
   const importUniverse = async (event) => {
     const [file] = event.target.files || [];
     if (!file) return;
-    const text = await file.text();
-    const parsed = JSON.parse(text);
-    setState(parsed);
-    event.target.value = '';
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      setState(normalizeState(parsed));
+      setAuthMessage('Universe imported successfully.');
+    } catch (error) {
+      setAuthMessage('Import failed. Please use a valid planner JSON export.');
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  const handleAuthSubmit = async (event) => {
+    event.preventDefault();
+    if (!supabase) return;
+
+    setAuthBusy(true);
+    setAuthMessage('');
+
+    try {
+      if (authMode === 'register') {
+        const { error } = await supabase.auth.signUp({
+          email: authForm.email,
+          password: authForm.password,
+          options: {
+            data: {
+              display_name: authForm.displayName.trim() || authForm.email,
+            },
+          },
+        });
+
+        if (error) throw error;
+
+        setAuthMessage('Account created. Check your email if confirmation is enabled in Supabase.');
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: authForm.email,
+          password: authForm.password,
+        });
+
+        if (error) throw error;
+
+        setAuthMessage('Welcome back.');
+      }
+
+      setAuthForm({ email: '', password: '', displayName: '' });
+    } catch (error) {
+      setAuthMessage(error.message || 'Authentication failed.');
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (!supabase) return;
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setAuthMessage(error.message);
+      return;
+    }
+    setAuthMessage('Signed out. Your local browser copy is still available on this device.');
   };
 
   return (
@@ -188,10 +473,10 @@ export default function App() {
       <header className="hero">
         <div>
           <span className="eyebrow">WWE 2K26 companion MVP</span>
-          <h1>Universe & Creations Planner</h1>
+          <h1>Universe &amp; Creations Planner</h1>
           <p>
-            Manage brand splits, champions, rivalries, and weekly cards in one place. This starter build uses localStorage,
-            so it works instantly with no backend.
+            Manage brand splits, champions, rivalries, and weekly cards in one place. This version now supports optional
+            cloud accounts, so users can register, sign in, and keep their planner synced across devices.
           </p>
         </div>
         <div className="hero-actions">
@@ -203,6 +488,46 @@ export default function App() {
           <button className="danger" onClick={resetUniverse}>Reset Demo Data</button>
         </div>
       </header>
+
+      <div className="grid two-column auth-layout">
+        <SectionCard
+          title="Player Accounts"
+          subtitle="Use email registration for cloud saves. Guests can still use the app locally."
+        >
+          <AuthPanel
+            session={session}
+            authMode={authMode}
+            setAuthMode={setAuthMode}
+            authForm={authForm}
+            setAuthForm={setAuthForm}
+            authBusy={authBusy}
+            authMessage={authMessage}
+            onSubmit={handleAuthSubmit}
+            onSignOut={handleSignOut}
+            configured={isSupabaseConfigured}
+            cloudStatus={cloudStatus}
+          />
+        </SectionCard>
+
+        <SectionCard
+          title="Save Mode"
+          subtitle="Local saves work instantly. Cloud saves require Supabase environment variables."
+        >
+          <div className="save-mode-grid">
+            <article className="save-mode-card">
+              <strong>Guest mode</strong>
+              <p>Uses this browser only. Great for testing layouts, rosters, and card ideas fast.</p>
+            </article>
+            <article className="save-mode-card">
+              <strong>Registered mode</strong>
+              <p>Email + password login, cloud sync, and one universe save per account for the MVP.</p>
+            </article>
+          </div>
+          <p className="muted">
+            Current mode: {session?.user ? 'Registered cloud user' : 'Guest local browser save'}
+          </p>
+        </SectionCard>
+      </div>
 
       <section className="stats-grid">
         <article><strong>{summary.brands}</strong><span>Brands</span></article>
@@ -281,7 +606,7 @@ export default function App() {
                         <option>Legends</option>
                       </select>
                     </td>
-                    <td><button className="danger ghost" onClick={() => removeSuperstar(star.id)}>Remove</button></td>
+                    <td><button className="danger ghost" type="button" onClick={() => removeSuperstar(star.id)}>Remove</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -359,7 +684,7 @@ export default function App() {
                 </div>
                 <p>{rivalry.notes || 'No notes yet.'}</p>
                 <small>{rivalry.brandId ? brandMap[rivalry.brandId]?.name : 'Cross-brand'}</small>
-                <button className="danger ghost" onClick={() => removeRivalry(rivalry.id)}>Delete</button>
+                <button className="danger ghost" type="button" onClick={() => removeRivalry(rivalry.id)}>Delete</button>
               </article>
             ))}
           </div>
@@ -423,7 +748,7 @@ export default function App() {
                     </li>
                   ))}
                 </ol>
-                <button className="danger ghost" onClick={() => removeCard(card.id)}>Delete Card</button>
+                <button className="danger ghost" type="button" onClick={() => removeCard(card.id)}>Delete Card</button>
               </article>
             ))}
           </div>
@@ -432,7 +757,8 @@ export default function App() {
 
       <footer className="footer-note">
         <p>
-          Built as an MVP starter. Next upgrades: user accounts, shared universes, draft automation, creation collections, mod compatibility, and printable exports.
+          Built as an MVP starter. This version now includes user registration and cloud save support through Supabase, while
+          still keeping browser-only guest mode for quick testing.
         </p>
         <p>
           Current assigned champions:{' '}

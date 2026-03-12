@@ -1,147 +1,89 @@
 # WWE 2K26 Universe & Creations Planner
 
-A React + Vite starter web app for managing a WWE 2K26 custom universe.
+A React + Vite companion app for WWE 2K26 players who want to manage rosters, brands, titles, rivalries, and weekly cards.
 
-## What it includes
+This version supports:
+- guest mode with browser localStorage
+- email registration and login with Supabase Auth
+- per-user cloud save storage in Supabase
+- JSON import and export
+- Vercel deployment from GitHub
 
-- Brand split management
-- Roster editor with alignment and division tracking
-- Championship assignment
-- Rivalry tracker
-- Weekly card builder
-- Local save via browser localStorage
-- JSON import/export for backups or migration later
-
-## Why this stack
-
-I chose **React + Vite** because it is:
-
-- fast to run locally
-- simple to deploy
-- easy to host on shared hosting, VPS, or a static host
-- a clean base if you later want to add Supabase, authentication, or a backend API
-
-## Local setup
-
-1. Install Node.js 20 or newer.
-2. Open a terminal inside the project folder.
-3. Run:
+## 1. Run locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-4. Open the local address shown in the terminal.
+## 2. Create a Supabase project
 
-## Production build
+1. Create a new project in Supabase.
+2. In **SQL Editor**, run the contents of `supabase/schema.sql`.
+3. In **Authentication > Providers**, keep Email enabled.
+4. In **Authentication > URL Configuration**, add:
+   - `http://localhost:5173`
+   - your future Vercel production URL
+5. Copy your project URL and anon key.
+
+Create a local `.env` file:
 
 ```bash
-npm run build
+cp .env.example .env
 ```
 
-That creates a `dist` folder with the production-ready site.
+Then fill in:
 
-## Upload to GitHub
+```env
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-public-anon-key
+```
 
-### First-time repo setup
-
-Create a new empty GitHub repository, then in the project folder run:
+## 3. Push to GitHub
 
 ```bash
 git init
 git add .
-git commit -m "Initial commit: WWE 2K26 universe planner"
+git commit -m "Initial commit: WWE 2K26 Universe Planner"
 git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
+git remote add origin https://github.com/YOUR_USERNAME/wwe2k26-universe-planner.git
 git push -u origin main
 ```
 
-### Future updates
+## 4. Deploy to Vercel from GitHub
 
-```bash
-git add .
-git commit -m "Describe your changes"
-git push
-```
+This app is a good fit for Vercel. Vercel supports importing a GitHub repository and automatically deploying on each push, including branch preview deployments. Official docs: Vercel's Git deployment and import guides. citeturn907724search2turn907724search4
 
-## Deploy to a server
+### Vercel steps
 
-You have two easy options.
+1. Sign in to Vercel.
+2. Click **Add New → Project**.
+3. Import your GitHub repo.
+4. Vercel should detect **Vite** automatically.
+5. Add these environment variables in the Vercel project settings:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+6. Deploy.
 
-### Option A: Static hosting or shared hosting
+Vercel CLI is optional. The official docs also support deploying from the CLI with `vercel --prod`. citeturn907724search6turn907724search18
 
-Best if your server can host plain HTML/CSS/JS files.
+## 5. Required Vercel environment variables
 
-1. Run:
+In Vercel → Project Settings → Environment Variables:
 
-```bash
-npm run build
-```
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
 
-2. Upload everything inside the `dist` folder to your server's public web folder.
-   Common examples:
-   - `public_html/`
-   - `www/`
-   - `htdocs/`
+After deployment, copy your Vercel production URL and add it in Supabase Auth URL settings as a valid Site URL / redirect origin. Supabase's auth docs note that your app URL should be included in the auth configuration for browser-based login flows. citeturn907724search1turn907724search15
 
-3. Your site will load immediately because this MVP is fully static.
-
-### Option B: VPS with Nginx
-
-Best if you want a more professional setup.
-
-Build locally first:
+## 6. Build manually
 
 ```bash
 npm run build
 ```
 
-Then upload the `dist` folder to your server, for example to:
+## 7. Notes
 
-```bash
-/var/www/wwe2k26-planner
-```
-
-Example Nginx server block:
-
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;
-
-    root /var/www/wwe2k26-planner;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-}
-```
-
-Then reload Nginx:
-
-```bash
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-## Suggested next upgrades
-
-- Supabase database and login
-- Shared universes per user
-- Draft simulator
-- Mod compatibility section
-- Community Creations collection tracker
-- Export to printable PDF or image card
-
-## Recommended project structure later
-
-- `src/components` for UI pieces
-- `src/lib` for storage and helper logic
-- `src/data` for presets
-- `src/pages` if you later expand into multiple screens
-
-## Notes
-
-This starter app currently stores everything in the browser. That makes it easy to test and host right away, but each browser/device keeps its own data until you add a backend.
+- Guest users save only in their current browser.
+- Registered users get one cloud-synced universe in this MVP.
+- You can expand this later into multiple universes, profile pages, shared leagues, or a community creations tracker.
