@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import SectionCard from './components/SectionCard';
 import {
+  createBrandArt,
+  createShowArt,
+  createSuperstarArt,
   defaultBrands,
   defaultCards,
   defaultRoster,
@@ -44,12 +47,32 @@ function normalizeState(input) {
   const base = freshState();
   if (!input || typeof input !== 'object') return base;
 
+  const brands = Array.isArray(input.brands)
+    ? input.brands.map((brand) => ({
+        ...brand,
+        color: brand.color || '#7c3aed',
+        imageUrl: brand.imageUrl || createBrandArt(brand.name, brand.color || '#7c3aed'),
+      }))
+    : base.brands;
+
+  const brandColorMap = Object.fromEntries(brands.map((brand) => [brand.id, brand.color || '#7c3aed']));
+
   return {
-    brands: Array.isArray(input.brands) ? input.brands.map((brand) => ({ imageUrl: '', ...brand })) : base.brands,
-    roster: Array.isArray(input.roster) ? input.roster.map((star) => ({ imageUrl: '', ...star })) : base.roster,
+    brands,
+    roster: Array.isArray(input.roster)
+      ? input.roster.map((star) => ({
+          ...star,
+          imageUrl: star.imageUrl || createSuperstarArt(star.name, brandColorMap[star.brandId] || '#334155', star.division || 'Main Event'),
+        }))
+      : base.roster,
     titles: Array.isArray(input.titles) ? input.titles : base.titles,
     rivalries: Array.isArray(input.rivalries) ? input.rivalries : base.rivalries,
-    cards: Array.isArray(input.cards) ? input.cards.map((card) => ({ imageUrl: '', ...card })) : base.cards,
+    cards: Array.isArray(input.cards)
+      ? input.cards.map((card) => ({
+          ...card,
+          imageUrl: card.imageUrl || createShowArt(card.showName, card.episodeName, '#7c3aed'),
+        }))
+      : base.cards,
   };
 }
 
@@ -105,10 +128,14 @@ function Toast({ toast }) {
   );
 }
 
-function MediaThumb({ src, alt, compact = false }) {
+function MediaThumb({ src, alt, compact = false, logo = null }) {
   return (
     <div className={`media-thumb ${compact ? 'compact' : ''}`}>
-      {src ? <img src={src} alt={alt} loading="lazy" /> : <div className="media-fallback">No image</div>}
+      {src ? <img src={src} alt={alt} loading="lazy" referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.style.display = 'none'; event.currentTarget.nextSibling?.classList.add('show'); }} /> : null}
+      <div className={`media-fallback ${src ? '' : 'show'}`}>
+        {logo ? <span className="media-logo-mark">{logo}</span> : null}
+        <span>No image</span>
+      </div>
     </div>
   );
 }
@@ -250,11 +277,14 @@ function BrandBoard({ brands, rosterByBrand, onImageChange }) {
   return (
     <div className="brand-board">
       {rosterByBrand.map((brand) => (
-        <article key={brand.id} className="visual-card brand-visual" style={{ borderColor: brand.color }}>
-          <MediaThumb src={brand.imageUrl} alt={brand.name} />
+        <article key={brand.id} className="visual-card brand-visual" style={{ borderColor: brand.color, boxShadow: `0 18px 50px ${brand.color}20` }}>
+          <MediaThumb src={brand.imageUrl} alt={brand.name} logo={brand.name.slice(0, 2).toUpperCase()} />
           <div className="visual-content">
             <div className="mini-card-top">
-              <strong>{brand.name}</strong>
+              <div>
+                <strong className="display-name">{brand.name}</strong>
+                <div className="brand-accent-line" style={{ background: brand.color }} />
+              </div>
               <span className="badge neutral">{brand.stars.length} assigned</span>
             </div>
             <input value={brand.imageUrl || ''} onChange={(event) => onImageChange(brand.id, event.target.value)} placeholder="Brand image URL" />
@@ -505,7 +535,7 @@ export default function App() {
     if (!brandName.trim()) return;
     updateStateList('brands', (brands) => [
       ...brands,
-      { id: crypto.randomUUID(), name: brandName.trim(), color: brandColor, imageUrl: brandImageUrl.trim() },
+      { id: crypto.randomUUID(), name: brandName.trim(), color: brandColor, imageUrl: brandImageUrl.trim() || createBrandArt(brandName.trim(), brandColor) },
     ]);
     setBrandName('');
     setBrandImageUrl('');
@@ -527,7 +557,7 @@ export default function App() {
         brandId: null,
         alignment: 'Face',
         division: 'Main Event',
-        imageUrl: rosterImageUrl.trim(),
+        imageUrl: rosterImageUrl.trim() || createSuperstarArt(rosterName.trim(), '#334155', 'Main Event'),
       },
     ]);
     setRosterName('');
@@ -586,7 +616,7 @@ export default function App() {
         id: crypto.randomUUID(),
         showName: cardForm.showName.trim(),
         episodeName: cardForm.episodeName.trim(),
-        imageUrl: cardForm.imageUrl.trim(),
+        imageUrl: cardForm.imageUrl.trim() || createShowArt(cardForm.showName.trim(), cardForm.episodeName.trim(), '#7c3aed'),
         matches: matchDrafts.filter((match) => match.participants.trim()).map((match) => ({ ...match })),
       },
       ...cards,
@@ -665,8 +695,9 @@ export default function App() {
       );
     } catch (error) {
       const message = getErrorMessage(error, 'Authentication failed.');
+      const extraDetails = error?.details || (message.includes('package dependencies') ? 'If this is on Vercel, make sure bcryptjs and jose are installed and redeployed.' : '');
       setAuthMessage(message);
-      showModal('Could not complete authentication', message, 'error', message.includes('package dependencies') ? 'If this is on Vercel, make sure bcryptjs and jose are installed and redeployed.' : '');
+      showModal('Could not complete authentication', message, 'error', extraDetails);
     } finally {
       setAuthBusy(false);
     }
@@ -778,8 +809,8 @@ export default function App() {
         </div>
         <div className="hero-actions">
           <button onClick={exportUniverse} type="button">Export JSON</button>
-          <label className="button secondary">
-            Import JSON
+          <label className="button import-button">
+            <span>Import JSON</span>
             <input type="file" accept="application/json" onChange={importUniverse} hidden />
           </label>
           <button className="danger" onClick={resetUniverse} type="button">Reset Demo Data</button>
@@ -860,8 +891,8 @@ export default function App() {
               <div className="lookup-result">
                 {assignmentLookupStar
                   ? assignmentLookupStar.brandId
-                    ? `${assignmentLookupStar.name} is assigned to ${brandMap[assignmentLookupStar.brandId]?.name || 'Unknown brand'}.`
-                    : `${assignmentLookupStar.name} is currently a free agent.`
+                    ? `${assignmentLookupStar.name} is assigned to ${brandMap[assignmentLookupStar.brandId]?.name || 'Unknown brand'} and ready for that show package.`
+                    : `${assignmentLookupStar.name} is currently a free agent and can be drafted anywhere.`
                   : 'Pick a wrestler to check their brand status.'}
               </div>
             </div>
@@ -870,11 +901,11 @@ export default function App() {
           <div className="roster-grid">
             {state.roster.map((star) => (
               <article key={star.id} className="visual-card roster-card">
-                <MediaThumb src={star.imageUrl} alt={star.name} compact />
+                <MediaThumb src={star.imageUrl} alt={star.name} compact logo={star.name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()} />
                 <div className="visual-content">
                   <div className="mini-card-top">
-                    <strong>{star.name}</strong>
-                    <span className={`badge ${star.brandId ? 'success' : 'neutral'}`}>{star.brandId ? brandMap[star.brandId]?.name : 'Free Agent'}</span>
+                    <strong className="display-name superstar-name">{star.name}</strong>
+                    <span className={`badge ${star.brandId ? 'brand-badge' : 'neutral'}`} style={star.brandId ? { background: `${brandMap[star.brandId]?.color || '#475569'}22`, color: brandMap[star.brandId]?.color || '#e2e8f0', borderColor: `${brandMap[star.brandId]?.color || '#475569'}66` } : undefined}>{star.brandId ? brandMap[star.brandId]?.name : 'Free Agent'}</span>
                   </div>
                   <div className="split-inputs compact-grid">
                     <select value={star.brandId || ''} onChange={(e) => updateSuperstar(star.id, 'brandId', e.target.value || null)}>

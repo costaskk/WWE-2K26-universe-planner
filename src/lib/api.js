@@ -7,7 +7,9 @@ async function parseResponse(response) {
   }
 
   if (!response.ok) {
-    throw new Error(data?.error || 'Request failed.');
+    const error = new Error(data?.error || 'Request failed.');
+    if (data?.details) error.details = data.details;
+    throw error;
   }
 
   return data;

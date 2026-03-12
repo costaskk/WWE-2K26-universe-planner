@@ -32,7 +32,7 @@ export async function handleRegister(req, res, body) {
     if (error.code === '23505') {
       return sendJson(res, 409, { error: 'That username is already taken.' });
     }
-    return sendJson(res, 500, { error: 'Could not create that profile.' });
+    return sendJson(res, 500, { error: 'Could not create that profile.', details: error.message || error.details || 'Check that app_users exists and your service role key is valid.' });
   }
 
   const token = await createSessionToken(data);
