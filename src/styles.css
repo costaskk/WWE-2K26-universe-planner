@@ -213,6 +213,7 @@ textarea:focus {
 .section-card {
   border-radius: 24px;
   padding: 1.2rem;
+  overflow: hidden;
 }
 
 .section-header {
@@ -408,7 +409,7 @@ textarea:focus {
 
 .roster-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(780px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1.25rem;
   align-items: start;
 }
@@ -421,6 +422,8 @@ textarea:focus {
   overflow: hidden;
   border-radius: 24px;
   position: relative;
+  width: 100%;
+  max-width: 100%;
 }
 
 .visual-card.roster-card {
@@ -475,6 +478,8 @@ textarea:focus {
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.04),
     0 18px 32px rgba(2, 8, 23, 0.35);
+  width: 100%;
+  max-width: 100%;
 }
 
 .media-thumb.compact {
@@ -969,13 +974,14 @@ td {
   border-color: rgba(147, 197, 253, 0.45);
 }
 
-@media (max-width: 1200px) {
-  .roster-grid {
+@media (max-width: 1400px) {
+  .two-column {
     grid-template-columns: 1fr;
   }
 
-  .visual-card {
-    grid-template-columns: 260px minmax(0, 1fr);
+  .visual-card,
+  .visual-card.roster-card {
+    grid-template-columns: 280px minmax(0, 1fr);
   }
 }
 
@@ -994,13 +1000,8 @@ td {
 }
 
 @media (max-width: 1100px) {
-  .two-column,
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .brand-board,
-  .roster-grid {
+  .stats-grid,
+  .brand-board {
     grid-template-columns: 1fr;
   }
 }

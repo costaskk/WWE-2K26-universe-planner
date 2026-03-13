@@ -13,7 +13,7 @@ const svgDataUri = ({
   const safeLogo = String(logoText || '').replace(/&/g, '&amp;');
 
   const titleLength = safeTitle.length;
-  const titleFontSize = titleLength > 14 ? 44 : titleLength > 10 ? 58 : 78;
+  const titleFontSize = titleLength > 14 ? 34 : titleLength > 10 ? 46 : 64;
   const subtitleFontSize = safeSubtitle.length > 18 ? 24 : 30;
   const logoFontSize = safeLogo.length > 2 ? 54 : 74;
 
@@ -39,7 +39,7 @@ const svgDataUri = ({
       <circle cx="1048" cy="338" r="112" fill="#020617" opacity="0.45" stroke="#ffffff" stroke-opacity="0.15"/>
       <text x="1048" y="358" text-anchor="middle" font-size="${logoFontSize}" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900">${safeLogo}</text>
       <rect x="60" y="60" width="1080" height="555" rx="28" fill="url(#shine)"/>
-      <text x="72" y="250" font-size="${titleFontSize}" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900">${safeTitle}</text>
+      <text x="72" y="222" font-size="${titleFontSize}" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900">${safeTitle}</text>
       <text x="76" y="348" font-size="${subtitleFontSize}" fill="#dbeafe" font-family="Arial, Helvetica, sans-serif">${safeSubtitle}</text>
       <rect x="72" y="528" width="420" height="10" rx="5" fill="${accent}" opacity="0.95"/>
     </svg>`;
