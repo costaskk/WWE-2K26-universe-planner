@@ -389,18 +389,20 @@ textarea:focus {
 .brand-board {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 .brand-visual {
   display: grid;
   grid-template-columns: 1fr;
-  min-height: auto;
+  min-height: 100%;
 }
 
 .brand-visual .media-thumb {
-  min-height: 220px;
+  width: 100%;
   aspect-ratio: 16 / 9;
+  min-height: 220px;
+  max-height: 220px;
 }
 
 .brand-visual .visual-content {
