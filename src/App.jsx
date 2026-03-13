@@ -115,6 +115,41 @@ function brandBadgeStyle(color = '#64748b') {
   };
 }
 
+function buildImageSearchLinks(query, type = 'superstar') {
+  const cleaned = String(query || '').trim();
+  if (!cleaned) return [];
+
+  const terms = type === 'show'
+    ? `${cleaned} wrestling show poster`
+    : type === 'brand'
+      ? `${cleaned} wrestling brand logo`
+      : `${cleaned} wrestler`;
+
+  const encoded = encodeURIComponent(terms);
+
+  return [
+    { label: 'Commons', href: `https://commons.wikimedia.org/w/index.php?search=${encoded}&title=Special:MediaSearch&go=Go&type=image` },
+    { label: 'Openverse', href: `https://openverse.org/search/image?q=${encoded}` },
+    { label: 'Google Images', href: `https://www.google.com/search?tbm=isch&q=${encoded}` },
+  ];
+}
+
+function ImageSearchLinks({ query, type = 'superstar' }) {
+  const links = buildImageSearchLinks(query, type);
+  if (!links.length) return null;
+
+  return (
+    <div className="image-search-links">
+      <span>Find images:</span>
+      {links.map((link) => (
+        <a key={link.label} href={link.href} target="_blank" rel="noreferrer">
+          {link.label}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 function Modal({ modal, onClose }) {
   if (!modal) return null;
 
@@ -1035,6 +1070,7 @@ export default function App() {
             <input value={rosterImageUrl} onChange={(e) => setRosterImageUrl(e.target.value)} placeholder="Superstar image URL" />
             <button type="submit">Add</button>
           </form>
+          <ImageSearchLinks query={rosterName} type="superstar" />
 
           <div className="lookup-panel">
             <strong>Brand assignment check</strong>
@@ -1108,6 +1144,8 @@ export default function App() {
                         placeholder="Image URL"
                       />
                     </div>
+
+                    <ImageSearchLinks query={star.name} type="superstar" />
 
                     <div className="roster-meta">
                       <span className="meta-chip">{star.alignment}</span>
@@ -1206,6 +1244,7 @@ export default function App() {
               <input placeholder="Episode or PPV" value={cardForm.episodeName} onChange={(e) => setCardForm((f) => ({ ...f, episodeName: e.target.value }))} />
             </div>
             <input placeholder="Poster / PPV image URL" value={cardForm.imageUrl} onChange={(e) => setCardForm((f) => ({ ...f, imageUrl: e.target.value }))} />
+            <ImageSearchLinks query={`${cardForm.showName} ${cardForm.episodeName}`.trim()} type="show" />
             {matchDrafts.map((match) => (
               <div key={match.id} className="match-builder">
                 <div className="split-inputs">
@@ -1272,6 +1311,7 @@ export default function App() {
                     }
                     placeholder="Poster image URL"
                   />
+                  <ImageSearchLinks query={`${card.showName} ${card.episodeName}`.trim()} type="show" />
                   <button className="danger ghost" type="button" onClick={() => removeCard(card.id)}>Delete Card</button>
                 </div>
               </article>
