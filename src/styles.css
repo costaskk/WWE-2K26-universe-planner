@@ -1019,8 +1019,9 @@ td {
   .brand-visual .media-thumb,
   .show-card .media-thumb,
   .saved-cards .media-thumb {
-    min-height: 260px;
-    aspect-ratio: 16 / 10;
+    aspect-ratio: 16 / 9;
+    min-height: 200px;
+    max-height: 200px;
   }
 
   .split-inputs.compact-grid,

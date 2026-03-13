@@ -7,20 +7,68 @@ const svgDataUri = ({
   badgeBg = '#0f172a',
   logoText = '',
 }) => {
-  const safeTitle = String(title || '').replace(/&/g, '&amp;');
-  const safeSubtitle = String(subtitle || '').replace(/&/g, '&amp;');
-  const safeBadge = String(badge || '').replace(/&/g, '&amp;');
-  const safeLogo = String(logoText || '').replace(/&/g, '&amp;');
+  const esc = (value = '') =>
+    String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+  const safeTitle = esc(title);
+  const safeSubtitle = esc(subtitle);
+  const safeBadge = esc(badge);
+  const safeLogo = esc(logoText);
 
   const titleLength = safeTitle.length;
-  const titleFontSize =
-    titleLength > 20 ? 24 :
-    titleLength > 16 ? 30 :
-    titleLength > 12 ? 36 :
-    52;
+  const subtitleLength = safeSubtitle.length;
+  const logoLength = safeLogo.length;
 
-  const subtitleFontSize = safeSubtitle.length > 18 ? 20 : 24;
-  const logoFontSize = safeLogo.length > 2 ? 42 : 58;
+  const isBrandLike = titleLength <= 14 && (!safeSubtitle || /brand artwork|week|show/i.test(safeSubtitle));
+  const isPersonLike = titleLength > 14 || /\s/.test(safeTitle);
+
+  let titleFontSize = 54;
+  let titleY = 220;
+  let subtitleY = 286;
+  let subtitleFontSize = 24;
+  let underlineWidth = 300;
+  let logoFontSize = logoLength > 2 ? 42 : 56;
+
+  if (isBrandLike) {
+    titleFontSize =
+      titleLength > 16 ? 30 :
+      titleLength > 12 ? 36 :
+      titleLength > 8 ? 44 :
+      54;
+
+    titleY = 215;
+    subtitleY = 282;
+    subtitleFontSize = 22;
+    underlineWidth = 320;
+  } else if (isPersonLike) {
+    titleFontSize =
+      titleLength > 24 ? 22 :
+      titleLength > 18 ? 28 :
+      titleLength > 14 ? 34 :
+      42;
+
+    titleY = 165;
+    subtitleY = 232;
+    subtitleFontSize = subtitleLength > 18 ? 18 : 20;
+    underlineWidth = 220;
+    logoFontSize = logoLength > 2 ? 36 : 46;
+  } else {
+    titleFontSize =
+      titleLength > 18 ? 26 :
+      titleLength > 14 ? 32 :
+      titleLength > 10 ? 40 :
+      50;
+
+    titleY = 205;
+    subtitleY = 270;
+    subtitleFontSize = subtitleLength > 18 ? 20 : 22;
+    underlineWidth = 280;
+  }
 
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675">
@@ -31,22 +79,28 @@ const svgDataUri = ({
           <stop offset="100%" stop-color="${background}"/>
         </linearGradient>
         <linearGradient id="shine" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16"/>
           <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
         </linearGradient>
       </defs>
+
       <rect width="1200" height="675" rx="36" fill="url(#bg)"/>
       <circle cx="1040" cy="110" r="170" fill="#ffffff" opacity="0.08"/>
       <circle cx="150" cy="610" r="240" fill="#ffffff" opacity="0.04"/>
       <path d="M0 500 C250 430 420 650 760 560 C920 520 1080 430 1200 455 L1200 675 L0 675 Z" fill="#ffffff" opacity="0.06"/>
+
       <rect x="70" y="70" width="180" height="44" rx="22" fill="${badgeBg}" opacity="0.9"/>
-      <text x="160" y="98" text-anchor="middle" font-size="24" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="700">${safeBadge}</text>
-      <circle cx="1048" cy="338" r="112" fill="#020617" opacity="0.45" stroke="#ffffff" stroke-opacity="0.15"/>
-      <text x="1048" y="358" text-anchor="middle" font-size="${logoFontSize}" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900">${safeLogo}</text>
+      <text x="160" y="99" text-anchor="middle" font-size="24" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="700">${safeBadge}</text>
+
+      <circle cx="1048" cy="338" r="112" fill="#020617" opacity="0.42" stroke="#ffffff" stroke-opacity="0.14"/>
+      <text x="1048" y="356" text-anchor="middle" font-size="${logoFontSize}" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900">${safeLogo}</text>
+
       <rect x="60" y="60" width="1080" height="555" rx="28" fill="url(#shine)"/>
-      <text x="84" y="210" font-size="${titleFontSize}" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900">${safeTitle}</text>
-      <text x="84" y="282" font-size="${subtitleFontSize}" fill="#dbeafe" font-family="Arial, Helvetica, sans-serif">${safeSubtitle}</text>
-      <rect x="84" y="520" width="320" height="10" rx="5" fill="${accent}" opacity="0.95"/>
+
+      <text x="86" y="${titleY}" font-size="${titleFontSize}" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900">${safeTitle}</text>
+      <text x="86" y="${subtitleY}" font-size="${subtitleFontSize}" fill="#dbeafe" font-family="Arial, Helvetica, sans-serif">${safeSubtitle}</text>
+
+      <rect x="86" y="520" width="${underlineWidth}" height="10" rx="5" fill="${accent}" opacity="0.95"/>
     </svg>`;
 
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
