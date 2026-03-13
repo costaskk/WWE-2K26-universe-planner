@@ -178,9 +178,9 @@ function MediaThumb({
   const displayLogo = logo || 'W2';
   const fallbackLabel =
     variant === 'superstar'
-      ? 'Superstar render'
+      ? 'Superstar spotlight'
       : variant === 'brand'
-        ? 'Brand artwork'
+        ? 'Brand package'
         : variant === 'show'
           ? 'Show poster'
           : 'Artwork';
@@ -207,12 +207,14 @@ function MediaThumb({
       ) : null}
 
       <div className={`media-fallback ${showFallback ? 'show' : ''}`}>
-        <div className="media-overlay-top" />
-        <div className="media-overlay-bottom" />
+        <div className="media-glow media-glow-a" />
+        <div className="media-glow media-glow-b" />
+        <div className="media-shade-top" />
+        <div className="media-shade-bottom" />
 
         <span className="media-logo-mark">{displayLogo}</span>
 
-        <div className="media-fallback-copy">
+        <div className="media-caption">
           <strong>{alt}</strong>
           <span>{subtitle || fallbackLabel}</span>
         </div>

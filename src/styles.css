@@ -439,19 +439,27 @@ textarea:focus {
   width: 100%;
 }
 
+.visual-card:hover .media-thumb img {
+  transform: scale(1.02);
+  filter: saturate(1.03) contrast(1.03);
+}
+
 .media-thumb {
   position: relative;
   min-height: 320px;
   border-radius: 22px;
   overflow: hidden;
   background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.1), transparent 24%),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.08), transparent 24%),
     linear-gradient(180deg, rgba(9, 15, 36, 0.98), rgba(5, 10, 28, 0.98));
   border: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: stretch;
   justify-content: stretch;
   isolation: isolate;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 18px 32px rgba(2, 8, 23, 0.35);
 }
 
 .media-thumb.compact {
@@ -467,27 +475,20 @@ textarea:focus {
   display: block;
   position: relative;
   z-index: 2;
+  transition: transform 0.35s ease, filter 0.35s ease;
 }
-
 .brand-visual .media-thumb,
 .show-card .media-thumb {
   aspect-ratio: 16 / 9;
-  min-height: 180px;
+  min-height: 190px;
 }
 
 .media-fallback {
   position: absolute;
   inset: 0;
   z-index: 1;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-start;
-  padding: 1rem;
-  color: rgba(255, 255, 255, 0.95);
-  background:
-    radial-gradient(circle at 85% 18%, rgba(255, 255, 255, 0.14), transparent 16%),
-    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.08), transparent 20%),
-    linear-gradient(180deg, rgba(6, 13, 33, 0.94), rgba(10, 19, 42, 0.94));
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.96);
 }
 
 .media-fallback.show {
@@ -520,22 +521,22 @@ textarea:focus {
 
 .media-superstar .media-fallback {
   background:
-    radial-gradient(circle at 82% 15%, rgba(239, 68, 68, 0.18), transparent 16%),
-    radial-gradient(circle at 18% 82%, rgba(124, 58, 237, 0.14), transparent 20%),
-    linear-gradient(180deg, rgba(7, 13, 30, 0.96), rgba(12, 19, 37, 0.94));
+    radial-gradient(circle at 82% 16%, rgba(239, 68, 68, 0.16), transparent 16%),
+    radial-gradient(circle at 20% 82%, rgba(59, 130, 246, 0.12), transparent 22%),
+    linear-gradient(180deg, rgba(7, 13, 30, 0.94), rgba(10, 18, 37, 0.94));
 }
 
 .media-brand .media-fallback {
   background:
-    radial-gradient(circle at 82% 15%, rgba(59, 130, 246, 0.18), transparent 16%),
-    radial-gradient(circle at 18% 82%, rgba(168, 85, 247, 0.14), transparent 20%),
-    linear-gradient(180deg, rgba(6, 12, 28, 0.96), rgba(11, 18, 36, 0.94));
+    radial-gradient(circle at 82% 16%, rgba(255, 255, 255, 0.1), transparent 15%),
+    radial-gradient(circle at 18% 82%, rgba(168, 85, 247, 0.12), transparent 22%),
+    linear-gradient(180deg, rgba(7, 13, 30, 0.94), rgba(10, 18, 37, 0.94));
 }
 
 .media-show .media-fallback {
   background:
-    radial-gradient(circle at 82% 15%, rgba(245, 158, 11, 0.2), transparent 16%),
-    radial-gradient(circle at 18% 82%, rgba(236, 72, 153, 0.14), transparent 20%),
+    radial-gradient(circle at 82% 16%, rgba(245, 158, 11, 0.18), transparent 16%),
+    radial-gradient(circle at 18% 82%, rgba(236, 72, 153, 0.12), transparent 22%),
     linear-gradient(180deg, rgba(8, 12, 28, 0.96), rgba(15, 19, 40, 0.94));
 }
 
@@ -551,12 +552,55 @@ textarea:focus {
   background: linear-gradient(180deg, transparent, rgba(2, 6, 23, 0.78));
 }
 
+.media-glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(6px);
+  opacity: 0.75;
+}
+
+.media-glow-a {
+  top: 18px;
+  right: 16px;
+  width: 84px;
+  height: 84px;
+  background: rgba(244, 114, 182, 0.18);
+}
+
+.media-glow-b {
+  left: 18px;
+  bottom: 18px;
+  width: 120px;
+  height: 120px;
+  background: rgba(59, 130, 246, 0.14);
+}
+
+.media-shade-top,
+.media-shade-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.media-shade-top {
+  top: 0;
+  height: 28%;
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.4), transparent);
+}
+
+.media-shade-bottom {
+  bottom: 0;
+  height: 46%;
+  background: linear-gradient(180deg, transparent, rgba(2, 6, 23, 0.84));
+}
+
 .media-logo-mark {
   position: absolute;
-  top: 18px;
-  right: 18px;
-  width: 64px;
-  height: 64px;
+  top: 16px;
+  right: 16px;
+  width: 62px;
+  height: 62px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -564,11 +608,39 @@ textarea:focus {
   border: 1px solid rgba(255, 255, 255, 0.14);
   color: #fff;
   font-weight: 900;
-  font-size: 1.45rem;
+  font-size: 1.4rem;
   letter-spacing: -0.03em;
   backdrop-filter: blur(8px);
   z-index: 4;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+}
+
+.media-caption {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 14px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
+.media-caption strong {
+  font-size: 1rem;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.36);
+}
+
+.media-caption span {
+  font-size: 0.84rem;
+  color: rgba(219, 234, 254, 0.88);
+  font-weight: 700;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
 }
 
 .display-name {
@@ -584,16 +656,16 @@ textarea:focus {
   overflow-wrap: anywhere;
 }
 
-.superstar-name {
-  max-width: 100%;
-  flex: 1 1 auto;
-}
-
 .roster-card .mini-card-top {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   gap: 0.85rem;
+}
+
+.superstar-name {
+  max-width: 100%;
+  flex: 1 1 auto;
 }
 
 .brand-visual .display-name {
