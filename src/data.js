@@ -119,7 +119,6 @@ export const superstarPhotoMap = {
   'Becky Lynch': commonsFile('Becky Lynch November 2018.jpg'),
   'Randy Orton': commonsFile('Randy Orton crop.jpg'),
 
-  /* unstable / unknown Wikimedia filenames: leave blank so UI cleanly falls back */
   'Seth Rollins': '',
   'Gunther': '',
   'Damian Priest': '',

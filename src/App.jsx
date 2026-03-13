@@ -172,12 +172,19 @@ function MediaThumb({
   const [currentSrc, setCurrentSrc] = useState(primary || backup || fallback || '');
   const [loaded, setLoaded] = useState(false);
   const [triedBackup, setTriedBackup] = useState(false);
+  const imgRef = useRef(null);
 
   useEffect(() => {
     setCurrentSrc(primary || backup || fallback || '');
     setLoaded(false);
     setTriedBackup(false);
   }, [primary, backup, fallback]);
+
+  useEffect(() => {
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  }, [currentSrc]);
 
   const showFallback = !currentSrc || !loaded;
   const displayLogo = logo || 'W2';
@@ -194,6 +201,7 @@ function MediaThumb({
     <div className={`media-thumb ${compact ? 'compact' : ''} ${variant ? `media-${variant}` : ''}`}>
       {currentSrc ? (
         <img
+          ref={imgRef}
           src={currentSrc}
           alt={alt}
           loading="lazy"

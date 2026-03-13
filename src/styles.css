@@ -597,10 +597,10 @@ textarea:focus {
 
 .media-logo-mark {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 62px;
-  height: 62px;
+  top: 18px;
+  right: 18px;
+  width: 56px;
+  height: 56px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -618,7 +618,7 @@ textarea:focus {
 .media-caption {
   position: absolute;
   left: 16px;
-  right: 16px;
+  right: 24px;
   bottom: 14px;
   z-index: 4;
   display: flex;
@@ -666,6 +666,7 @@ textarea:focus {
 .superstar-name {
   max-width: 100%;
   flex: 1 1 auto;
+  overflow-wrap: anywhere;
 }
 
 .brand-visual .display-name {
@@ -838,11 +839,14 @@ td {
 }
 
 .roster-card .visual-content {
-  min-width: 0;
+  justify-content: flex-start;
 }
 
 .roster-card .mini-card-top {
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.85rem;
 }
 
 .roster-card button,
@@ -876,21 +880,43 @@ td {
 .saved-cards .visual-card,
 .show-card {
   grid-template-columns: 260px minmax(0, 1fr);
-  min-height: 220px;
+  min-height: 240px;
+  align-items: stretch;
 }
 
-.show-card .media-thumb {
-  min-height: 200px;
-  aspect-ratio: 16 / 10;
+.show-card .visual-content {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .show-card ol {
   margin: 0;
   padding-left: 1.1rem;
+  min-width: 0;
 }
 
 .show-card li {
-  margin-bottom: 0.45rem;
+  margin-bottom: 0.5rem;
+}
+
+.show-card li span,
+.show-card li small {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.show-card .mini-card-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.show-card .mini-card-top strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 860px) {
