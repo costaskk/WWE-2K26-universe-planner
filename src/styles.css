@@ -397,14 +397,14 @@ textarea:focus {
 
 .roster-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(760px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(780px, 1fr));
   gap: 1.25rem;
   align-items: start;
 }
 
 .visual-card {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 320px minmax(0, 1fr);
   gap: 1.15rem;
   align-items: stretch;
   overflow: hidden;
@@ -413,7 +413,7 @@ textarea:focus {
 }
 
 .visual-card.roster-card {
-  min-height: 390px;
+  min-height: 400px;
 }
 
 .visual-card::before {
@@ -471,7 +471,7 @@ textarea:focus {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center top;
+  object-position: center 18%;
   display: block;
   position: relative;
   z-index: 2;
@@ -873,33 +873,40 @@ td {
   }
 }
 
+.saved-cards .visual-card,
+.show-card {
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 220px;
+}
+
+.show-card .media-thumb {
+  min-height: 200px;
+  aspect-ratio: 16 / 10;
+}
+
+.show-card ol {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.show-card li {
+  margin-bottom: 0.45rem;
+}
+
 @media (max-width: 860px) {
   .visual-card,
   .visual-card.roster-card,
-  .brand-visual {
+  .brand-visual,
+  .show-card,
+  .saved-cards .visual-card {
     grid-template-columns: 1fr;
   }
 
   .media-thumb.compact,
   .brand-visual .media-thumb,
-  .saved-cards .visual-card,
-  .show-card {
-    grid-template-columns: 260px minmax(0, 1fr);
-    min-height: 220px;
-  }
-
   .show-card .media-thumb {
-    min-height: 200px;
+    min-height: 260px;
     aspect-ratio: 16 / 10;
-  }
-
-  .show-card ol {
-    margin: 0;
-    padding-left: 1.1rem;
-  }
-
-  .show-card li {
-    margin-bottom: 0.45rem;
   }
 
   .split-inputs.compact-grid,
