@@ -377,7 +377,7 @@ textarea:focus {
 }
 
 .brand-board {
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1rem;
 }
 
@@ -877,11 +877,19 @@ td {
   }
 }
 
+.saved-cards {
+  grid-template-columns: 1fr;
+}
+
 .saved-cards .visual-card,
 .show-card {
+
   grid-template-columns: 260px minmax(0, 1fr);
   min-height: 240px;
   align-items: stretch;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  min-height: 220px;
+  align-items: start;
 }
 
 .show-card .visual-content {
@@ -889,10 +897,22 @@ td {
   overflow: hidden;
 }
 
+.show-card .visual-content,
+.show-card .mini-card-top,
+.show-card ol,
+.show-card li,
+.show-card li span,
+.show-card li small {
+  min-width: 0;
+}
+
 .show-card ol {
   margin: 0;
   padding-left: 1.1rem;
+
   min-width: 0;
+
+  overflow-wrap: anywhere;
 }
 
 .show-card li {
@@ -919,12 +939,24 @@ td {
   overflow-wrap: anywhere;
 }
 
+.show-card li span,
+.show-card li small {
+  display: block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 1180px) {
+  .show-card,
+  .saved-cards .visual-card {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 860px) {
   .visual-card,
   .visual-card.roster-card,
-  .brand-visual,
-  .show-card,
-  .saved-cards .visual-card {
+  .brand-visual {
     grid-template-columns: 1fr;
   }
 

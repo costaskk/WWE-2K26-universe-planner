@@ -12,6 +12,11 @@ const svgDataUri = ({
   const safeBadge = String(badge || '').replace(/&/g, '&amp;');
   const safeLogo = String(logoText || '').replace(/&/g, '&amp;');
 
+  const titleLength = safeTitle.length;
+  const titleFontSize = titleLength > 16 ? 56 : titleLength > 10 ? 70 : 92;
+  const subtitleFontSize = safeSubtitle.length > 18 ? 24 : 30;
+  const logoFontSize = safeLogo.length > 2 ? 54 : 74;
+
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675">
       <defs>
@@ -31,11 +36,11 @@ const svgDataUri = ({
       <path d="M0 500 C250 430 420 650 760 560 C920 520 1080 430 1200 455 L1200 675 L0 675 Z" fill="#ffffff" opacity="0.06"/>
       <rect x="70" y="70" width="180" height="44" rx="22" fill="${badgeBg}" opacity="0.9"/>
       <text x="160" y="98" text-anchor="middle" font-size="24" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="700">${safeBadge}</text>
-      <circle cx="1048" cy="338" r="130" fill="#020617" opacity="0.45" stroke="#ffffff" stroke-opacity="0.15"/>
-      <text x="1048" y="362" text-anchor="middle" font-size="86" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900">${safeLogo}</text>
+      <circle cx="1048" cy="338" r="112" fill="#020617" opacity="0.45" stroke="#ffffff" stroke-opacity="0.15"/>
+      <text x="1048" y="358" text-anchor="middle" font-size="${logoFontSize}" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900">${safeLogo}</text>
       <rect x="60" y="60" width="1080" height="555" rx="28" fill="url(#shine)"/>
-      <text x="72" y="282" font-size="92" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900">${safeTitle}</text>
-      <text x="76" y="350" font-size="34" fill="#dbeafe" font-family="Arial, Helvetica, sans-serif">${safeSubtitle}</text>
+      <text x="72" y="282" font-size="${titleFontSize}" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="900">${safeTitle}</text>
+      <text x="76" y="348" font-size="${subtitleFontSize}" fill="#dbeafe" font-family="Arial, Helvetica, sans-serif">${safeSubtitle}</text>
       <rect x="72" y="528" width="420" height="10" rx="5" fill="${accent}" opacity="0.95"/>
     </svg>`;
 
@@ -44,6 +49,34 @@ const svgDataUri = ({
 
 const commonsFile = (filename) =>
   `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(filename)}?width=900`;
+
+const normalizeKey = (value = '') =>
+  String(value).trim().toLowerCase().replace(/\s+/g, ' ');
+
+export const brandImageMap = {
+  [normalizeKey('Raw')]: commonsFile('WWE Raw Logo.svg'),
+  [normalizeKey('SmackDown')]: commonsFile('WWE SmackDown.svg'),
+  [normalizeKey('NXT')]: commonsFile('WWE NXT logo.svg'),
+};
+
+export const showPosterMap = {
+  [normalizeKey('Raw Week 1')]: commonsFile('WWE Raw Logo.svg'),
+  [normalizeKey('SmackDown Go-home show')]: commonsFile('WWE SmackDown.svg'),
+};
+
+export function getKnownBrandImage(name) {
+  return brandImageMap[normalizeKey(name)] || '';
+}
+
+export function getKnownShowImage(showName, episodeName = '') {
+  const exact = showPosterMap[normalizeKey(`${showName} ${episodeName}`)];
+  if (exact) return exact;
+  return brandImageMap[normalizeKey(showName)] || '';
+}
+
+export function getKnownSuperstarImage(name) {
+  return superstarPhotoMap[normalizeKey(name)] || superstarPhotoMap[name] || '';
+}
 
 export const createBrandArt = (name, color = '#7c3aed') =>
   svgDataUri({
@@ -111,22 +144,22 @@ export const recommendedImageSources = [
 ];
 
 export const superstarPhotoMap = {
-  'Roman Reigns': commonsFile('Roman Reigns May 2019.jpg'),
-  'Cody Rhodes': commonsFile('Cody Rhodes, Wrestlemania XL in 2024 6 (cropped).jpg'),
-  'CM Punk': commonsFile('CM Punk RR25.jpg'),
-  'Rhea Ripley': commonsFile('Rhea Ripley 040724.jpg'),
-  'Bianca Belair': commonsFile('Bianca Belair 2024.jpg'),
-  'Becky Lynch': commonsFile('Becky Lynch November 2018.jpg'),
-  'Randy Orton': commonsFile('Randy Orton crop.jpg'),
+  [normalizeKey('Roman Reigns')]: commonsFile('Roman Reigns May 2019.jpg'),
+  [normalizeKey('Cody Rhodes')]: commonsFile('Cody Rhodes, Wrestlemania XL in 2024 6 (cropped).jpg'),
+  [normalizeKey('CM Punk')]: commonsFile('CM Punk RR25.jpg'),
+  [normalizeKey('Rhea Ripley')]: commonsFile('Rhea Ripley 040724.jpg'),
+  [normalizeKey('Bianca Belair')]: commonsFile('Bianca Belair 2024.jpg'),
+  [normalizeKey('Becky Lynch')]: commonsFile('Becky Lynch November 2018.jpg'),
+  [normalizeKey('Randy Orton')]: commonsFile('Randy Orton crop.jpg'),
 
-  'Seth Rollins': '',
-  'Gunther': '',
-  'Damian Priest': '',
-  'Liv Morgan': '',
-  'Jey Uso': '',
-  'LA Knight': '',
-  'The Usos': '',
-  'The Judgment Day': '',
+  [normalizeKey('Seth Rollins')]: '',
+  [normalizeKey('Gunther')]: '',
+  [normalizeKey('Damian Priest')]: '',
+  [normalizeKey('Liv Morgan')]: '',
+  [normalizeKey('Jey Uso')]: '',
+  [normalizeKey('LA Knight')]: '',
+  [normalizeKey('The Usos')]: '',
+  [normalizeKey('The Judgment Day')]: '',
 };
 
 const brandTheme = {

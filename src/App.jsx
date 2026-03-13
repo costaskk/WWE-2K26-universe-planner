@@ -9,8 +9,10 @@ import {
   defaultRoster,
   defaultRivalries,
   defaultTitles,
+  getKnownBrandImage,
+  getKnownShowImage,
+  getKnownSuperstarImage,
   recommendedImageSources,
-  superstarPhotoMap,
 } from './data';
 import { api } from './lib/api';
 import { downloadFile, loadState, saveState } from './utils';
@@ -425,6 +427,7 @@ function BrandBoard({ rosterByBrand, onImageChange }) {
         >
           <MediaThumb
             src={brand.imageUrl}
+            backupSrc={getKnownBrandImage(brand.name)}
             alt={brand.name}
             fallbackSrc={createBrandArt(brand.name, brand.color)}
             logo={brand.name.slice(0, 2).toUpperCase()}
@@ -696,16 +699,20 @@ export default function App() {
   const addBrand = (event) => {
     event.preventDefault();
     if (!brandName.trim()) return;
+
     const nextName = brandName.trim();
+    const resolvedImage = cleanImageUrl(brandImageUrl) || getKnownBrandImage(nextName);
+
     updateStateList('brands', (brands) => [
       ...brands,
       {
         id: crypto.randomUUID(),
         name: nextName,
         color: brandColor,
-        imageUrl: cleanImageUrl(brandImageUrl),
+        imageUrl: resolvedImage,
       },
     ]);
+
     setBrandName('');
     setBrandImageUrl('');
     showToast('Brand added', `${nextName} is ready for your draft.`, 'success');
@@ -720,17 +727,22 @@ export default function App() {
   const addSuperstar = (event) => {
     event.preventDefault();
     if (!rosterName.trim()) return;
+
+    const nextName = rosterName.trim();
+    const resolvedImage = cleanImageUrl(rosterImageUrl) || getKnownSuperstarImage(nextName);
+
     updateStateList('roster', (roster) => [
       ...roster,
       {
         id: crypto.randomUUID(),
-        name: rosterName.trim(),
+        name: nextName,
         brandId: null,
         alignment: 'Face',
         division: 'Main Event',
-        imageUrl: cleanImageUrl(rosterImageUrl),
+        imageUrl: resolvedImage,
       },
     ]);
+
     setRosterName('');
     setRosterImageUrl('');
     showToast('Superstar added', 'Roster updated successfully.', 'success');
@@ -792,16 +804,24 @@ export default function App() {
   const addCard = (event) => {
     event.preventDefault();
     if (!cardForm.showName.trim() || !cardForm.episodeName.trim()) return;
+
+    const showName = cardForm.showName.trim();
+    const episodeName = cardForm.episodeName.trim();
+    const resolvedImage = cleanImageUrl(cardForm.imageUrl) || getKnownShowImage(showName, episodeName);
+
     updateStateList('cards', (cards) => [
       {
         id: crypto.randomUUID(),
-        showName: cardForm.showName.trim(),
-        episodeName: cardForm.episodeName.trim(),
-        imageUrl: cleanImageUrl(cardForm.imageUrl),
-        matches: matchDrafts.filter((match) => match.participants.trim()).map((match) => ({ ...match })),
+        showName,
+        episodeName,
+        imageUrl: resolvedImage,
+        matches: matchDrafts
+          .filter((match) => match.participants.trim())
+          .map((match) => ({ ...match })),
       },
       ...cards,
     ]);
+
     setCardForm(defaultCardForm);
     setMatchDrafts([createMatchDraft()]);
     showToast('Show card saved', 'Your weekly card is now part of this universe.', 'success');
@@ -1099,13 +1119,13 @@ export default function App() {
                 <article key={star.id} className="visual-card roster-card">
                   <MediaThumb
                     src={star.imageUrl}
-                    backupSrc={superstarPhotoMap[star.name] || ''}
-                    fallbackSrc={fallbackRender}
+                    backupSrc={getKnownSuperstarImage(star.name)}
                     alt={star.name}
-                    compact
+                    fallbackSrc={fallbackRender}
                     logo={star.name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()}
-                    subtitle={star.division || 'Superstar'}
+                    subtitle={`${star.division} spotlight`}
                     variant="superstar"
+                    compact
                   />
                   <div className="visual-content">
                     <div className="mini-card-top">
@@ -1281,6 +1301,7 @@ export default function App() {
               <article key={card.id} className="visual-card show-card">
                 <MediaThumb
                   src={card.imageUrl}
+                  backupSrc={getKnownShowImage(card.showName, card.episodeName)}
                   alt={`${card.showName} ${card.episodeName}`}
                   fallbackSrc={createShowArt(card.showName, card.episodeName, '#7c3aed')}
                   logo={card.showName.slice(0, 2).toUpperCase()}
