@@ -10,6 +10,7 @@ import {
   defaultRivalries,
   defaultTitles,
   recommendedImageSources,
+  superstarPhotoMap,
 } from './data';
 import { api } from './lib/api';
 import { downloadFile, loadState, saveState } from './utils';
@@ -47,7 +48,7 @@ function cleanImageUrl(value) {
   if (!value || typeof value !== 'string') return '';
   const trimmed = value.trim();
   if (!trimmed) return '';
-  if (trimmed.startsWith('data:image/svg+xml')) return '';
+  if (trimmed.startsWith('data:image/')) return '';
   return trimmed;
 }
 
@@ -55,7 +56,7 @@ function normalizeState(input) {
   const base = freshState();
   if (!input || typeof input !== 'object') return base;
 
-  const brands = Array.isArray(input.brands)
+    const brands = Array.isArray(input.brands)
     ? input.brands.map((brand) => ({
         ...brand,
         color: brand.color || '#7c3aed',
@@ -68,7 +69,7 @@ function normalizeState(input) {
     roster: Array.isArray(input.roster)
       ? input.roster.map((star) => ({
           ...star,
-          imageUrl: cleanImageUrl(star.imageUrl),
+          imageUrl: cleanImageUrl(star.imageUrl) || superstarPhotoMap[star.name] || '',
           brandId: star.brandId || null,
           alignment: star.alignment || 'Face',
           division: star.division || 'Main Event',
