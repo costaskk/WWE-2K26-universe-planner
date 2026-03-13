@@ -348,7 +348,7 @@ function BrandBoard({ rosterByBrand, onImageChange }) {
           <div className="visual-content">
             <div className="mini-card-top">
               <div>
-                <strong className="display-name">{brand.name}</strong>
+                <h3 className="display-name">{brand.name}</h3>
                 <div className="brand-accent-line" style={{ background: brand.color }} />
               </div>
               <span className="badge neutral">{brand.stars.length} assigned</span>
@@ -1019,7 +1019,7 @@ export default function App() {
                   />
                   <div className="visual-content">
                     <div className="mini-card-top">
-                      <strong className="display-name superstar-name">{star.name}</strong>
+                      <h3 className="display-name superstar-name">{star.name}</h3>
                       <span
                         className={`badge ${star.brandId ? 'brand-badge' : 'neutral'}`}
                         style={star.brandId ? brandBadgeStyle(brandColor) : undefined}

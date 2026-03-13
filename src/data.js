@@ -21,7 +21,7 @@ const svgDataUri = ({
           <stop offset="100%" stop-color="${background}"/>
         </linearGradient>
         <linearGradient id="shine" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/>
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
           <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
         </linearGradient>
       </defs>
@@ -42,37 +42,46 @@ const svgDataUri = ({
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
-const commonsFile = (filename) => `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(filename)}?width=900`;
+const commonsFile = (filename) =>
+  `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(filename)}?width=900`;
 
-export const createBrandArt = (name, color = '#7c3aed') => svgDataUri({
-  title: String(name || 'BRAND').toUpperCase(),
-  subtitle: 'Brand artwork',
-  background: color,
-  accent: color,
-  badge: 'BRAND',
-  badgeBg: '#111827',
-  logoText: String(name || 'BR').slice(0, 2).toUpperCase(),
-});
+export const createBrandArt = (name, color = '#7c3aed') =>
+  svgDataUri({
+    title: String(name || 'BRAND').toUpperCase(),
+    subtitle: 'Brand artwork',
+    background: color,
+    accent: color,
+    badge: 'BRAND',
+    badgeBg: '#111827',
+    logoText: String(name || 'BR').slice(0, 2).toUpperCase(),
+  });
 
-export const createSuperstarArt = (name, color = '#334155', division = 'Main Event') => svgDataUri({
-  title: String(name || 'SUPERSTAR').toUpperCase(),
-  subtitle: `${division} spotlight card`,
-  background: color,
-  accent: '#f8fafc',
-  badge: 'ROSTER',
-  badgeBg: '#0f172a',
-  logoText: String(name || 'SS').split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase(),
-});
+export const createSuperstarArt = (name, color = '#334155', division = 'Main Event') =>
+  svgDataUri({
+    title: String(name || 'SUPERSTAR').toUpperCase(),
+    subtitle: `${division} spotlight card`,
+    background: color,
+    accent: '#f8fafc',
+    badge: 'ROSTER',
+    badgeBg: '#0f172a',
+    logoText: String(name || 'SS')
+      .split(' ')
+      .map((part) => part[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase(),
+  });
 
-export const createShowArt = (showName, episodeName, color = '#7c3aed') => svgDataUri({
-  title: String(showName || 'SHOW').toUpperCase(),
-  subtitle: episodeName || 'Weekly show card',
-  background: color,
-  accent: '#f8fafc',
-  badge: 'SHOW',
-  badgeBg: '#111827',
-  logoText: String(showName || 'SH').slice(0, 2).toUpperCase(),
-});
+export const createShowArt = (showName, episodeName, color = '#7c3aed') =>
+  svgDataUri({
+    title: String(showName || 'SHOW').toUpperCase(),
+    subtitle: episodeName || 'Weekly show card',
+    background: color,
+    accent: '#f8fafc',
+    badge: 'SHOW',
+    badgeBg: '#111827',
+    logoText: String(showName || 'SH').slice(0, 2).toUpperCase(),
+  });
 
 export const recommendedImageSources = [
   {
@@ -105,7 +114,7 @@ const superstarPhotoMap = {
   'Roman Reigns': commonsFile('Roman Reigns May 2019.jpg'),
   'Cody Rhodes': commonsFile('Cody Rhodes, Wrestlemania XL in 2024 6 (cropped).jpg'),
   'CM Punk': commonsFile('CM Punk RR25.jpg'),
-  'Seth Rollins': commonsFile('WWE Champion Seth Rollins.jpg'),
+  'Seth Rollins': commonsFile('Seth Rollins at GalaxyCon Richmond in 2024.jpg'),
   'Rhea Ripley': commonsFile('Rhea Ripley 040724.jpg'),
   'Bianca Belair': commonsFile('Bianca Belair 2024.jpg'),
   'Becky Lynch': commonsFile('Becky Lynch November 2018.jpg'),
@@ -119,9 +128,9 @@ const brandTheme = {
 };
 
 export const defaultBrands = [
-  { id: crypto.randomUUID(), name: 'Raw', color: brandTheme.Raw.color, imageUrl: createBrandArt('RAW', brandTheme.Raw.color) },
-  { id: crypto.randomUUID(), name: 'SmackDown', color: brandTheme.SmackDown.color, imageUrl: createBrandArt('SMACKDOWN', brandTheme.SmackDown.color) },
-  { id: crypto.randomUUID(), name: 'NXT', color: brandTheme.NXT.color, imageUrl: createBrandArt('NXT', brandTheme.NXT.color) },
+  { id: crypto.randomUUID(), name: 'Raw', color: brandTheme.Raw.color, imageUrl: '' },
+  { id: crypto.randomUUID(), name: 'SmackDown', color: brandTheme.SmackDown.color, imageUrl: '' },
+  { id: crypto.randomUUID(), name: 'NXT', color: brandTheme.NXT.color, imageUrl: '' },
 ];
 
 const seededStar = (name, color, division, extra = {}) => ({
@@ -130,7 +139,7 @@ const seededStar = (name, color, division, extra = {}) => ({
   brandId: null,
   alignment: 'Face',
   division,
-  imageUrl: superstarPhotoMap[name] || createSuperstarArt(name, color, division),
+  imageUrl: superstarPhotoMap[name] || '',
   ...extra,
 });
 
@@ -177,7 +186,7 @@ export const defaultCards = [
     id: crypto.randomUUID(),
     showName: 'Raw',
     episodeName: 'Week 1',
-    imageUrl: createShowArt('Raw', 'Week 1', '#d61f2c'),
+    imageUrl: '',
     matches: [
       { id: crypto.randomUUID(), matchType: 'Singles', stipulation: 'Standard', participants: 'Cody Rhodes vs Roman Reigns' },
       { id: crypto.randomUUID(), matchType: 'Tag Team', stipulation: 'Standard', participants: 'The Usos vs The Judgment Day' },
@@ -187,7 +196,7 @@ export const defaultCards = [
     id: crypto.randomUUID(),
     showName: 'SmackDown',
     episodeName: 'Go-home show',
-    imageUrl: createShowArt('SmackDown', 'Go-home show', '#2563eb'),
+    imageUrl: '',
     matches: [
       { id: crypto.randomUUID(), matchType: 'Singles', stipulation: 'I Quit', participants: 'LA Knight vs Gunther' },
     ],
