@@ -180,7 +180,7 @@ const seededStar = (name, color, division, extra = {}) => ({
   brandId: null,
   alignment: 'Face',
   division,
-  imageUrl: superstarPhotoMap[name] || '',
+  imageUrl: getKnownSuperstarImage(name),
   ...extra,
 });
 

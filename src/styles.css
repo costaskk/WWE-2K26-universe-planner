@@ -883,10 +883,6 @@ td {
 
 .saved-cards .visual-card,
 .show-card {
-
-  grid-template-columns: 260px minmax(0, 1fr);
-  min-height: 240px;
-  align-items: stretch;
   grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
   min-height: 220px;
   align-items: start;
