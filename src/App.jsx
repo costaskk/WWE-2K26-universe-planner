@@ -154,7 +154,15 @@ function Toast({ toast }) {
   );
 }
 
-function MediaThumb({ src, alt, fallbackSrc = '', compact = false, logo = null }) {
+function MediaThumb({
+  src,
+  alt,
+  fallbackSrc = '',
+  compact = false,
+  logo = null,
+  subtitle = '',
+  variant = 'default',
+}) {
   const normalizedSrc = cleanImageUrl(src);
   const normalizedFallback = fallbackSrc || '';
   const [currentSrc, setCurrentSrc] = useState(normalizedSrc || normalizedFallback || '');
@@ -166,9 +174,18 @@ function MediaThumb({ src, alt, fallbackSrc = '', compact = false, logo = null }
   }, [normalizedSrc, normalizedFallback]);
 
   const showFallback = !currentSrc || !loaded;
+  const displayLogo = logo || 'W2';
+  const fallbackLabel =
+    variant === 'superstar'
+      ? 'Superstar render'
+      : variant === 'brand'
+        ? 'Brand artwork'
+        : variant === 'show'
+          ? 'Show poster'
+          : 'Artwork';
 
   return (
-    <div className={`media-thumb ${compact ? 'compact' : ''}`}>
+    <div className={`media-thumb ${compact ? 'compact' : ''} ${variant ? `media-${variant}` : ''}`}>
       {currentSrc ? (
         <img
           src={currentSrc}
@@ -187,9 +204,17 @@ function MediaThumb({ src, alt, fallbackSrc = '', compact = false, logo = null }
           }}
         />
       ) : null}
+
       <div className={`media-fallback ${showFallback ? 'show' : ''}`}>
-        {logo ? <span className="media-logo-mark">{logo}</span> : null}
-        <span>{showFallback ? 'No image' : ''}</span>
+        <div className="media-overlay-top" />
+        <div className="media-overlay-bottom" />
+
+        <span className="media-logo-mark">{displayLogo}</span>
+
+        <div className="media-fallback-copy">
+          <strong>{alt}</strong>
+          <span>{subtitle || fallbackLabel}</span>
+        </div>
       </div>
     </div>
   );
@@ -344,6 +369,8 @@ function BrandBoard({ rosterByBrand, onImageChange }) {
             fallbackSrc={createBrandArt(brand.name, brand.color)}
             alt={brand.name}
             logo={brand.name.slice(0, 2).toUpperCase()}
+            subtitle="Brand artwork"
+            variant="brand"
           />
           <div className="visual-content">
             <div className="mini-card-top">
@@ -1016,6 +1043,8 @@ export default function App() {
                     alt={star.name}
                     compact
                     logo={star.name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()}
+                    subtitle={star.division || 'Superstar'}
+                    variant="superstar"
                   />
                   <div className="visual-content">
                     <div className="mini-card-top">
@@ -1190,6 +1219,9 @@ export default function App() {
                   src={card.imageUrl}
                   fallbackSrc={createShowArt(card.showName, card.episodeName, '#7c3aed')}
                   alt={`${card.showName} ${card.episodeName}`}
+                  logo={card.showName.slice(0, 2).toUpperCase()}
+                  subtitle={card.episodeName}
+                  variant="show"
                 />
                 <div className="visual-content">
                   <div className="mini-card-top">
