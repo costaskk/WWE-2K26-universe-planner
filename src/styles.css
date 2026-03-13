@@ -397,14 +397,14 @@ textarea:focus {
 
 .roster-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(720px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(760px, 1fr));
   gap: 1.25rem;
   align-items: start;
 }
 
 .visual-card {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: 300px minmax(0, 1fr);
   gap: 1.15rem;
   align-items: stretch;
   overflow: hidden;
@@ -413,7 +413,7 @@ textarea:focus {
 }
 
 .visual-card.roster-card {
-  min-height: 380px;
+  min-height: 390px;
 }
 
 .visual-card::before {
@@ -463,7 +463,7 @@ textarea:focus {
 }
 
 .media-thumb.compact {
-  min-height: 340px;
+  min-height: 350px;
   aspect-ratio: 3 / 4;
 }
 
@@ -857,7 +857,7 @@ td {
   }
 
   .visual-card {
-    grid-template-columns: 250px minmax(0, 1fr);
+    grid-template-columns: 260px minmax(0, 1fr);
   }
 }
 
@@ -882,9 +882,24 @@ td {
 
   .media-thumb.compact,
   .brand-visual .media-thumb,
+  .saved-cards .visual-card,
+  .show-card {
+    grid-template-columns: 260px minmax(0, 1fr);
+    min-height: 220px;
+  }
+
   .show-card .media-thumb {
-    min-height: 260px;
+    min-height: 200px;
     aspect-ratio: 16 / 10;
+  }
+
+  .show-card ol {
+    margin: 0;
+    padding-left: 1.1rem;
+  }
+
+  .show-card li {
+    margin-bottom: 0.45rem;
   }
 
   .split-inputs.compact-grid,

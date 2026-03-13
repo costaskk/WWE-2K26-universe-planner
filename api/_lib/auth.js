@@ -86,10 +86,32 @@ export function getSessionCookieValue(req) {
 export function sessionCookie(token) {
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
   const expires = new Date(Date.now() + THIRTY_DAYS_SECONDS * 1000).toUTCString();
-  return `${COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=None; Max-Age=${THIRTY_DAYS_SECONDS}; Expires=${expires}${secure}`;
+  return [
+    `${COOKIE_NAME}=${encodeURIComponent(token)}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    `Max-Age=${THIRTY_DAYS_SECONDS}`,
+    `Expires=${expires}`,
+    'Priority=High',
+    secure ? 'Secure' : '',
+  ]
+    .filter(Boolean)
+    .join('; ');
 }
 
 export function clearSessionCookie() {
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  return `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=None; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT${secure}`;
+  return [
+    `${COOKIE_NAME}=`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    'Max-Age=0',
+    'Expires=Thu, 01 Jan 1970 00:00:00 GMT',
+    'Priority=High',
+    secure ? 'Secure' : '',
+  ]
+    .filter(Boolean)
+    .join('; ');
 }

@@ -114,16 +114,20 @@ export const superstarPhotoMap = {
   'Roman Reigns': commonsFile('Roman Reigns May 2019.jpg'),
   'Cody Rhodes': commonsFile('Cody Rhodes, Wrestlemania XL in 2024 6 (cropped).jpg'),
   'CM Punk': commonsFile('CM Punk RR25.jpg'),
-  'Seth Rollins': commonsFile('WWE Champion Seth Rollins.jpg'),
   'Rhea Ripley': commonsFile('Rhea Ripley 040724.jpg'),
   'Bianca Belair': commonsFile('Bianca Belair 2024.jpg'),
   'Becky Lynch': commonsFile('Becky Lynch November 2018.jpg'),
   'Randy Orton': commonsFile('Randy Orton crop.jpg'),
-  'Gunther': commonsFile('Gunther in 2024.jpg'),
-  'Damian Priest': commonsFile('Damian Priest 2024.jpg'),
-  'Liv Morgan': commonsFile('Liv Morgan 2024.jpg'),
-  'Jey Uso': commonsFile('Jey Uso 2024.jpg'),
-  'LA Knight': commonsFile('LA Knight 2024.jpg'),
+
+  /* unstable / unknown Wikimedia filenames: leave blank so UI cleanly falls back */
+  'Seth Rollins': '',
+  'Gunther': '',
+  'Damian Priest': '',
+  'Liv Morgan': '',
+  'Jey Uso': '',
+  'LA Knight': '',
+  'The Usos': '',
+  'The Judgment Day': '',
 };
 
 const brandTheme = {

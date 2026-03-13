@@ -56,7 +56,7 @@ function normalizeState(input) {
   const base = freshState();
   if (!input || typeof input !== 'object') return base;
 
-    const brands = Array.isArray(input.brands)
+  const brands = Array.isArray(input.brands)
     ? input.brands.map((brand) => ({
         ...brand,
         color: brand.color || '#7c3aed',
@@ -69,7 +69,7 @@ function normalizeState(input) {
     roster: Array.isArray(input.roster)
       ? input.roster.map((star) => ({
           ...star,
-          imageUrl: cleanImageUrl(star.imageUrl) || superstarPhotoMap[star.name] || '',
+          imageUrl: cleanImageUrl(star.imageUrl),
           brandId: star.brandId || null,
           alignment: star.alignment || 'Face',
           division: star.division || 'Main Event',
@@ -157,6 +157,7 @@ function Toast({ toast }) {
 
 function MediaThumb({
   src,
+  backupSrc = '',
   alt,
   fallbackSrc = '',
   compact = false,
@@ -164,15 +165,19 @@ function MediaThumb({
   subtitle = '',
   variant = 'default',
 }) {
-  const normalizedSrc = cleanImageUrl(src);
-  const normalizedFallback = fallbackSrc || '';
-  const [currentSrc, setCurrentSrc] = useState(normalizedSrc || normalizedFallback || '');
+  const primary = cleanImageUrl(src);
+  const backup = cleanImageUrl(backupSrc);
+  const fallback = fallbackSrc || '';
+
+  const [currentSrc, setCurrentSrc] = useState(primary || backup || fallback || '');
   const [loaded, setLoaded] = useState(false);
+  const [triedBackup, setTriedBackup] = useState(false);
 
   useEffect(() => {
-    setCurrentSrc(normalizedSrc || normalizedFallback || '');
+    setCurrentSrc(primary || backup || fallback || '');
     setLoaded(false);
-  }, [normalizedSrc, normalizedFallback]);
+    setTriedBackup(false);
+  }, [primary, backup, fallback]);
 
   const showFallback = !currentSrc || !loaded;
   const displayLogo = logo || 'W2';
@@ -195,13 +200,21 @@ function MediaThumb({
           referrerPolicy="no-referrer"
           onLoad={() => setLoaded(true)}
           onError={() => {
-            if (normalizedFallback && currentSrc !== normalizedFallback) {
-              setCurrentSrc(normalizedFallback);
+            if (!triedBackup && backup && currentSrc !== backup) {
+              setCurrentSrc(backup);
+              setTriedBackup(true);
               setLoaded(false);
-            } else {
-              setCurrentSrc('');
-              setLoaded(false);
+              return;
             }
+
+            if (fallback && currentSrc !== fallback) {
+              setCurrentSrc(fallback);
+              setLoaded(false);
+              return;
+            }
+
+            setCurrentSrc('');
+            setLoaded(false);
           }}
         />
       ) : null}
@@ -369,8 +382,8 @@ function BrandBoard({ rosterByBrand, onImageChange }) {
         >
           <MediaThumb
             src={brand.imageUrl}
-            fallbackSrc={createBrandArt(brand.name, brand.color)}
             alt={brand.name}
+            fallbackSrc={createBrandArt(brand.name, brand.color)}
             logo={brand.name.slice(0, 2).toUpperCase()}
             subtitle="Brand artwork"
             variant="brand"
@@ -1042,6 +1055,7 @@ export default function App() {
                 <article key={star.id} className="visual-card roster-card">
                   <MediaThumb
                     src={star.imageUrl}
+                    backupSrc={superstarPhotoMap[star.name] || ''}
                     fallbackSrc={fallbackRender}
                     alt={star.name}
                     compact
@@ -1215,13 +1229,13 @@ export default function App() {
         </SectionCard>
 
         <SectionCard title="Saved Cards" subtitle="Use these as weekly booking references or export the universe snapshot.">
-          <div className="card-list visual-list">
+          <div className="card-list visual-list saved-cards">
             {state.cards.map((card) => (
               <article key={card.id} className="visual-card show-card">
                 <MediaThumb
                   src={card.imageUrl}
-                  fallbackSrc={createShowArt(card.showName, card.episodeName, '#7c3aed')}
                   alt={`${card.showName} ${card.episodeName}`}
+                  fallbackSrc={createShowArt(card.showName, card.episodeName, '#7c3aed')}
                   logo={card.showName.slice(0, 2).toUpperCase()}
                   subtitle={card.episodeName}
                   variant="show"
