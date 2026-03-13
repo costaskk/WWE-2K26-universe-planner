@@ -13,7 +13,9 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   min-width: 0;
 }
@@ -384,7 +386,7 @@ textarea:focus {
 }
 
 .brand-board {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
   align-items: start;
 }
@@ -396,7 +398,7 @@ textarea:focus {
 }
 
 .brand-visual .media-thumb {
-  min-height: 210px;
+  min-height: 220px;
   aspect-ratio: 16 / 9;
 }
 
@@ -488,25 +490,13 @@ textarea:focus {
   display: block;
   position: relative;
   z-index: 2;
-  transition: transform 0.35s ease, filter 0.35s ease, opacity 0.25s ease;
-}
-
-/* Real wrestler/show/brand images should stay visible when present */
-.media-thumb:has(img[src]) .media-fallback {
-  z-index: 1;
-}
-
-.media-thumb:has(img[src]) .media-caption,
-.media-thumb:has(img[src]) .media-logo-mark,
-.media-thumb:has(img[src]) .media-shade-top,
-.media-thumb:has(img[src]) .media-shade-bottom {
-  z-index: 4;
+  transition: transform 0.35s ease, filter 0.35s ease;
 }
 
 .brand-visual .media-thumb,
 .show-card .media-thumb {
   aspect-ratio: 16 / 9;
-  min-height: 190px;
+  min-height: 200px;
 }
 
 .media-fallback {
@@ -875,7 +865,6 @@ td {
   width: 100%;
 }
 
-/* Saved cards / show cards */
 .saved-cards {
   display: grid;
   grid-template-columns: 1fr;
@@ -885,12 +874,16 @@ td {
 .saved-cards .visual-card,
 .show-card {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 1rem;
   min-height: 220px;
   align-items: start;
 }
 
-.show-card .media-thumb {
+.show-card .media-thumb,
+.saved-cards .media-thumb {
+  width: 100%;
+  max-width: 280px;
   align-self: start;
 }
 
@@ -899,16 +892,24 @@ td {
 .show-card ol,
 .show-card li,
 .show-card li span,
-.show-card li small {
+.show-card li small,
+.saved-cards .visual-content,
+.saved-cards .mini-card-top,
+.saved-cards ol,
+.saved-cards li,
+.saved-cards li span,
+.saved-cards li small {
   min-width: 0;
 }
 
-.show-card .visual-content {
+.show-card .visual-content,
+.saved-cards .visual-content {
   overflow: hidden;
   padding-right: 0;
 }
 
-.show-card ol {
+.show-card ol,
+.saved-cards ol {
   margin: 0;
   padding-left: 1.1rem;
   display: flex;
@@ -917,24 +918,27 @@ td {
   overflow-wrap: anywhere;
 }
 
-.show-card li {
+.show-card li,
+.saved-cards li {
   margin-bottom: 0;
   padding-right: 0.15rem;
 }
 
 .show-card li span,
-.show-card li small {
+.show-card li small,
+.saved-cards li span,
+.saved-cards li small {
   display: block;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
 
-.show-card li small {
+.show-card li small,
+.saved-cards li small {
   margin-top: 0.15rem;
   color: #94a3b8;
 }
 
-/* Image search links */
 .image-search-links {
   display: flex;
   flex-wrap: wrap;
@@ -983,6 +987,7 @@ td {
 
   .show-card .media-thumb,
   .saved-cards .media-thumb {
+    max-width: 100%;
     min-height: 240px;
     aspect-ratio: 16 / 9;
   }
@@ -990,7 +995,10 @@ td {
 
 @media (max-width: 1100px) {
   .two-column,
-  .stats-grid,
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
   .brand-board,
   .roster-grid {
     grid-template-columns: 1fr;
@@ -1006,7 +1014,8 @@ td {
 
   .media-thumb.compact,
   .brand-visual .media-thumb,
-  .show-card .media-thumb {
+  .show-card .media-thumb,
+  .saved-cards .media-thumb {
     min-height: 260px;
     aspect-ratio: 16 / 10;
   }
