@@ -43,6 +43,14 @@ const createMatchDraft = () => ({
   participants: '',
 });
 
+function cleanImageUrl(value) {
+  if (!value || typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('data:image/svg+xml')) return '';
+  return trimmed;
+}
+
 function normalizeState(input) {
   const base = freshState();
   if (!input || typeof input !== 'object') return base;
@@ -51,18 +59,19 @@ function normalizeState(input) {
     ? input.brands.map((brand) => ({
         ...brand,
         color: brand.color || '#7c3aed',
-        imageUrl: brand.imageUrl || '',
+        imageUrl: cleanImageUrl(brand.imageUrl),
       }))
     : base.brands;
-
-  const brandColorMap = Object.fromEntries(brands.map((brand) => [brand.id, brand.color || '#7c3aed']));
 
   return {
     brands,
     roster: Array.isArray(input.roster)
       ? input.roster.map((star) => ({
           ...star,
-          imageUrl: star.imageUrl || '',
+          imageUrl: cleanImageUrl(star.imageUrl),
+          brandId: star.brandId || null,
+          alignment: star.alignment || 'Face',
+          division: star.division || 'Main Event',
         }))
       : base.roster,
     titles: Array.isArray(input.titles) ? input.titles : base.titles,
@@ -70,7 +79,8 @@ function normalizeState(input) {
     cards: Array.isArray(input.cards)
       ? input.cards.map((card) => ({
           ...card,
-          imageUrl: card.imageUrl || '',
+          imageUrl: cleanImageUrl(card.imageUrl),
+          matches: Array.isArray(card.matches) ? card.matches : [],
         }))
       : base.cards,
   };
@@ -109,13 +119,20 @@ function Modal({ modal, onClose }) {
 
   return (
     <div className="modal-backdrop" onClick={onClose} role="presentation">
-      <div className={`modal-card ${modal.variant || 'info'}`} onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
+      <div
+        className={`modal-card ${modal.variant || 'info'}`}
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
         <div className="modal-header">
           <div>
             <span className={`status-pill ${modal.variant || 'info'}`}>{modal.label || 'Notice'}</span>
             <h3>{modal.title}</h3>
           </div>
-          <button className="ghost-icon" type="button" onClick={onClose} aria-label="Close modal">×</button>
+          <button className="ghost-icon" type="button" onClick={onClose} aria-label="Close modal">
+            ×
+          </button>
         </div>
         <p>{modal.message}</p>
         {modal.details ? <pre className="modal-details">{modal.details}</pre> : null}
@@ -138,13 +155,17 @@ function Toast({ toast }) {
 }
 
 function MediaThumb({ src, alt, fallbackSrc = '', compact = false, logo = null }) {
-  const [currentSrc, setCurrentSrc] = useState(src || fallbackSrc || '');
+  const normalizedSrc = cleanImageUrl(src);
+  const normalizedFallback = fallbackSrc || '';
+  const [currentSrc, setCurrentSrc] = useState(normalizedSrc || normalizedFallback || '');
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    setCurrentSrc(src || fallbackSrc || '');
+    setCurrentSrc(normalizedSrc || normalizedFallback || '');
     setLoaded(false);
-  }, [src, fallbackSrc]);
+  }, [normalizedSrc, normalizedFallback]);
+
+  const showFallback = !currentSrc || !loaded;
 
   return (
     <div className={`media-thumb ${compact ? 'compact' : ''}`}>
@@ -156,8 +177,8 @@ function MediaThumb({ src, alt, fallbackSrc = '', compact = false, logo = null }
           referrerPolicy="no-referrer"
           onLoad={() => setLoaded(true)}
           onError={() => {
-            if (fallbackSrc && currentSrc !== fallbackSrc) {
-              setCurrentSrc(fallbackSrc);
+            if (normalizedFallback && currentSrc !== normalizedFallback) {
+              setCurrentSrc(normalizedFallback);
               setLoaded(false);
             } else {
               setCurrentSrc('');
@@ -166,9 +187,9 @@ function MediaThumb({ src, alt, fallbackSrc = '', compact = false, logo = null }
           }}
         />
       ) : null}
-      <div className={`media-fallback ${loaded ? '' : 'show'}`}>
+      <div className={`media-fallback ${showFallback ? 'show' : ''}`}>
         {logo ? <span className="media-logo-mark">{logo}</span> : null}
-        <span>{loaded ? '' : 'No image'}</span>
+        <span>{showFallback ? 'No image' : ''}</span>
       </div>
     </div>
   );
@@ -233,7 +254,9 @@ function AuthPanel({
           minLength={6}
           required
         />
-        <button type="submit" disabled={authBusy}>{authBusy ? 'Please wait...' : authMode === 'login' ? 'Sign in' : 'Create profile'}</button>
+        <button type="submit" disabled={authBusy}>
+          {authBusy ? 'Please wait...' : authMode === 'login' ? 'Sign in' : 'Create profile'}
+        </button>
       </form>
       <p className="muted auth-hint">
         Usernames must be 3 to 24 characters and can use letters, numbers, underscores, or dashes. No email is stored.
@@ -307,12 +330,21 @@ function SlotPanel({
   );
 }
 
-function BrandBoard({ brands, rosterByBrand, onImageChange }) {
+function BrandBoard({ rosterByBrand, onImageChange }) {
   return (
     <div className="brand-board">
       {rosterByBrand.map((brand) => (
-        <article key={brand.id} className="visual-card brand-visual" style={{ borderColor: brand.color, boxShadow: `0 18px 50px ${brand.color}20` }}>
-          <MediaThumb src={brand.imageUrl} fallbackSrc={createBrandArt(brand.name, brand.color)} alt={brand.name} logo={brand.name.slice(0, 2).toUpperCase()} />
+        <article
+          key={brand.id}
+          className="visual-card brand-visual"
+          style={{ borderColor: brand.color, boxShadow: `0 18px 50px ${brand.color}20` }}
+        >
+          <MediaThumb
+            src={brand.imageUrl}
+            fallbackSrc={createBrandArt(brand.name, brand.color)}
+            alt={brand.name}
+            logo={brand.name.slice(0, 2).toUpperCase()}
+          />
           <div className="visual-content">
             <div className="mini-card-top">
               <div>
@@ -321,7 +353,11 @@ function BrandBoard({ brands, rosterByBrand, onImageChange }) {
               </div>
               <span className="badge neutral">{brand.stars.length} assigned</span>
             </div>
-            <input value={brand.imageUrl || ''} onChange={(event) => onImageChange(brand.id, event.target.value)} placeholder="Brand image URL" />
+            <input
+              value={brand.imageUrl || ''}
+              onChange={(event) => onImageChange(brand.id, event.target.value)}
+              placeholder="Brand image URL"
+            />
           </div>
         </article>
       ))}
@@ -347,7 +383,7 @@ function SourceLibrary() {
 }
 
 export default function App() {
-  const [state, setState] = useState(() => loadState(STORAGE_KEY, freshState()));
+  const [state, setState] = useState(() => normalizeState(loadState(STORAGE_KEY, freshState())));
   const [brandName, setBrandName] = useState('');
   const [brandColor, setBrandColor] = useState('#7c3aed');
   const [rosterName, setRosterName] = useState('');
@@ -378,7 +414,13 @@ export default function App() {
   };
 
   const showModal = (title, message, variant = 'info', details = '') => {
-    setModal({ title, message, variant, details, label: variant === 'error' ? 'Problem' : variant === 'success' ? 'Success' : 'Info' });
+    setModal({
+      title,
+      message,
+      variant,
+      details,
+      label: variant === 'error' ? 'Problem' : variant === 'success' ? 'Success' : 'Info',
+    });
   };
 
   useEffect(() => {
@@ -388,7 +430,7 @@ export default function App() {
   }, [toast]);
 
   useEffect(() => {
-    saveState(STORAGE_KEY, state);
+    saveState(STORAGE_KEY, normalizeState(state));
   }, [state]);
 
   useEffect(() => {
@@ -445,7 +487,8 @@ export default function App() {
 
         setSaveSlots(slots);
 
-        const requestedSlot = activeSlotId && slots.find((slot) => slot.id === activeSlotId) ? activeSlotId : slots[0].id;
+        const requestedSlot =
+          activeSlotId && slots.find((slot) => slot.id === activeSlotId) ? activeSlotId : slots[0].id;
         const selected = slots.find((slot) => slot.id === requestedSlot) || slots[0];
 
         skipNextCloudSave.current = true;
@@ -567,17 +610,25 @@ export default function App() {
   const addBrand = (event) => {
     event.preventDefault();
     if (!brandName.trim()) return;
+    const nextName = brandName.trim();
     updateStateList('brands', (brands) => [
       ...brands,
-      { id: crypto.randomUUID(), name: brandName.trim(), color: brandColor, imageUrl: brandImageUrl.trim(), },
+      {
+        id: crypto.randomUUID(),
+        name: nextName,
+        color: brandColor,
+        imageUrl: cleanImageUrl(brandImageUrl),
+      },
     ]);
     setBrandName('');
     setBrandImageUrl('');
-    showToast('Brand added', `${brandName.trim()} is ready for your draft.`, 'success');
+    showToast('Brand added', `${nextName} is ready for your draft.`, 'success');
   };
 
   const updateBrand = (id, field, value) => {
-    updateStateList('brands', (brands) => brands.map((brand) => (brand.id === id ? { ...brand, [field]: value } : brand)));
+    updateStateList('brands', (brands) =>
+      brands.map((brand) => (brand.id === id ? { ...brand, [field]: field === 'imageUrl' ? cleanImageUrl(value) : value } : brand))
+    );
   };
 
   const addSuperstar = (event) => {
@@ -591,7 +642,7 @@ export default function App() {
         brandId: null,
         alignment: 'Face',
         division: 'Main Event',
-        imageUrl: rosterImageUrl.trim(),
+        imageUrl: cleanImageUrl(rosterImageUrl),
       },
     ]);
     setRosterName('');
@@ -600,17 +651,27 @@ export default function App() {
   };
 
   const updateSuperstar = (id, field, value) => {
-    updateStateList('roster', (roster) => roster.map((star) => (star.id === id ? { ...star, [field]: value } : star)));
+    updateStateList('roster', (roster) =>
+      roster.map((star) =>
+        star.id === id
+          ? { ...star, [field]: field === 'imageUrl' ? cleanImageUrl(value) : value }
+          : star
+      )
+    );
   };
 
   const removeSuperstar = (id) => {
     updateStateList('roster', (roster) => roster.filter((star) => star.id !== id));
-    updateStateList('titles', (titles) => titles.map((title) => (title.holderId === id ? { ...title, holderId: null } : title)));
+    updateStateList('titles', (titles) =>
+      titles.map((title) => (title.holderId === id ? { ...title, holderId: null } : title))
+    );
     showToast('Roster updated', 'The superstar was removed from this universe.', 'info');
   };
 
   const updateTitle = (id, field, value) => {
-    updateStateList('titles', (titles) => titles.map((title) => (title.id === id ? { ...title, [field]: value || null } : title)));
+    updateStateList('titles', (titles) =>
+      titles.map((title) => (title.id === id ? { ...title, [field]: value || null } : title))
+    );
   };
 
   const addRivalry = (event) => {
@@ -650,7 +711,7 @@ export default function App() {
         id: crypto.randomUUID(),
         showName: cardForm.showName.trim(),
         episodeName: cardForm.episodeName.trim(),
-        imageUrl: cardForm.imageUrl.trim() || createShowArt(cardForm.showName.trim(), cardForm.episodeName.trim(), '#7c3aed'),
+        imageUrl: cleanImageUrl(cardForm.imageUrl),
         matches: matchDrafts.filter((match) => match.participants.trim()).map((match) => ({ ...match })),
       },
       ...cards,
@@ -665,12 +726,15 @@ export default function App() {
   };
 
   const exportUniverse = () => {
-    downloadFile(`wwe2k26-${activeSlotName.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'universe'}-export.json`, JSON.stringify(state, null, 2));
+    downloadFile(
+      `wwe2k26-${activeSlotName.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'universe'}-export.json`,
+      JSON.stringify(normalizeState(state), null, 2)
+    );
     showToast('Export ready', 'Universe JSON downloaded.', 'success');
   };
 
   const resetUniverse = () => {
-    const reset = freshState();
+    const reset = normalizeState(freshState());
     setState(reset);
     saveState(STORAGE_KEY, reset);
     setAuthMessage('Universe reset to demo data.');
@@ -729,7 +793,11 @@ export default function App() {
       );
     } catch (error) {
       const message = getErrorMessage(error, 'Authentication failed.');
-      const extraDetails = error?.details || (message.includes('package dependencies') ? 'If this is on Vercel, make sure bcryptjs and jose are installed and redeployed.' : '');
+      const extraDetails =
+        error?.details ||
+        (message.includes('package dependencies')
+          ? 'If this is on Vercel, make sure bcryptjs and jose are installed and redeployed.'
+          : '');
       setAuthMessage(message);
       showModal('Could not complete authentication', message, 'error', extraDetails);
     } finally {
@@ -768,7 +836,9 @@ export default function App() {
     setSlotBusy(true);
     const created = await createCloudSlot(trimmedName, freshState());
     if (created) {
-      setSaveSlots((current) => [created, ...current].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)));
+      setSaveSlots((current) =>
+        [created, ...current].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+      );
       skipNextCloudSave.current = true;
       setActiveSlotId(created.id);
       setState(normalizeState(created.data));
@@ -905,7 +975,7 @@ export default function App() {
             </form>
           }
         >
-          <BrandBoard brands={state.brands} rosterByBrand={rosterByBrand} onImageChange={(id, value) => updateBrand(id, 'imageUrl', value)} />
+          <BrandBoard rosterByBrand={rosterByBrand} onImageChange={(id, value) => updateBrand(id, 'imageUrl', value)} />
         </SectionCard>
 
         <SectionCard title="Roster" subtitle="Assign superstars, check who is on a brand, and add render URLs when you have them.">
@@ -933,44 +1003,72 @@ export default function App() {
           </div>
 
           <div className="roster-grid">
-            {state.roster.map((star) => (
-              <article key={star.id} className="visual-card roster-card">
-                <MediaThumb src={star.imageUrl} fallbackSrc={createSuperstarArt(star.name, brandMap[star.brandId]?.color || '#334155', star.division)} alt={star.name} compact logo={star.name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()} />
-                <div className="visual-content">
-                  <div className="mini-card-top">
-                    <strong className="display-name superstar-name">{star.name}</strong>
-                    <span className={`badge ${star.brandId ? 'brand-badge' : 'neutral'}`} style={star.brandId ? brandBadgeStyle(brandMap[star.brandId]?.color || '#e2e8f0') : undefined}>{star.brandId ? brandMap[star.brandId]?.name : 'Free Agent'}</span>
+            {state.roster.map((star) => {
+              const assignedBrand = star.brandId ? brandMap[star.brandId] : null;
+              const brandColor = assignedBrand?.color || '#334155';
+              const fallbackRender = createSuperstarArt(star.name, brandColor, star.division);
+
+              return (
+                <article key={star.id} className="visual-card roster-card">
+                  <MediaThumb
+                    src={star.imageUrl}
+                    fallbackSrc={fallbackRender}
+                    alt={star.name}
+                    compact
+                    logo={star.name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()}
+                  />
+                  <div className="visual-content">
+                    <div className="mini-card-top">
+                      <strong className="display-name superstar-name">{star.name}</strong>
+                      <span
+                        className={`badge ${star.brandId ? 'brand-badge' : 'neutral'}`}
+                        style={star.brandId ? brandBadgeStyle(brandColor) : undefined}
+                      >
+                        {assignedBrand?.name || 'Free Agent'}
+                      </span>
+                    </div>
+
+                    <div className="split-inputs compact-grid">
+                      <select value={star.brandId || ''} onChange={(e) => updateSuperstar(star.id, 'brandId', e.target.value || null)}>
+                        <option value="">Free Agent</option>
+                        {state.brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
+                      </select>
+                      <select value={star.alignment} onChange={(e) => updateSuperstar(star.id, 'alignment', e.target.value)}>
+                        <option>Face</option>
+                        <option>Heel</option>
+                        <option>Tweener</option>
+                      </select>
+                    </div>
+
+                    <div className="split-inputs compact-grid">
+                      <select value={star.division} onChange={(e) => updateSuperstar(star.id, 'division', e.target.value)}>
+                        <option>Main Event</option>
+                        <option>Midcard</option>
+                        <option>Women</option>
+                        <option>Tag</option>
+                        <option>Legends</option>
+                      </select>
+                      <input
+                        value={star.imageUrl || ''}
+                        onChange={(e) => updateSuperstar(star.id, 'imageUrl', e.target.value)}
+                        placeholder="Image URL"
+                      />
+                    </div>
+
+                    <div className="roster-meta">
+                      <span className="meta-chip">{star.alignment}</span>
+                      <span className="meta-chip">{star.division}</span>
+                    </div>
+
+                    <button className="danger ghost" type="button" onClick={() => removeSuperstar(star.id)}>
+                      Remove
+                    </button>
                   </div>
-                  <div className="split-inputs compact-grid">
-                    <select value={star.brandId || ''} onChange={(e) => updateSuperstar(star.id, 'brandId', e.target.value || null)}>
-                      <option value="">Free Agent</option>
-                      {state.brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
-                    </select>
-                    <select value={star.alignment} onChange={(e) => updateSuperstar(star.id, 'alignment', e.target.value)}>
-                      <option>Face</option>
-                      <option>Heel</option>
-                      <option>Tweener</option>
-                    </select>
-                  </div>
-                  <div className="split-inputs compact-grid">
-                    <select value={star.division} onChange={(e) => updateSuperstar(star.id, 'division', e.target.value)}>
-                      <option>Main Event</option>
-                      <option>Midcard</option>
-                      <option>Women</option>
-                      <option>Tag</option>
-                      <option>Legends</option>
-                    </select>
-                    <input value={star.imageUrl || ''} onChange={(e) => updateSuperstar(star.id, 'imageUrl', e.target.value)} placeholder="Image URL" />
-                  </div>
-                  <div className="roster-meta">
-                    <span className="meta-chip">{star.alignment}</span>
-                    <span className="meta-chip">{star.division}</span>
-                  </div>
-                  <button className="danger ghost" type="button" onClick={() => removeSuperstar(star.id)}>Remove</button>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
+
           {freeAgents.length ? <p className="muted">Free agents: {freeAgents.map((star) => star.name).join(', ')}</p> : null}
         </SectionCard>
       </div>
@@ -1088,7 +1186,11 @@ export default function App() {
           <div className="card-list visual-list">
             {state.cards.map((card) => (
               <article key={card.id} className="visual-card show-card">
-                <MediaThumb src={card.imageUrl} fallbackSrc={createShowArt(card.showName, card.episodeName, brandMap[state.brands.find((brand) => brand.name === card.showName)?.id]?.color || '#7c3aed')} alt={`${card.showName} ${card.episodeName}`} />
+                <MediaThumb
+                  src={card.imageUrl}
+                  fallbackSrc={createShowArt(card.showName, card.episodeName, '#7c3aed')}
+                  alt={`${card.showName} ${card.episodeName}`}
+                />
                 <div className="visual-content">
                   <div className="mini-card-top">
                     <strong>{card.showName}</strong>
@@ -1102,7 +1204,17 @@ export default function App() {
                       </li>
                     ))}
                   </ol>
-                  <input value={card.imageUrl || ''} onChange={(e) => updateStateList('cards', (cards) => cards.map((entry) => entry.id === card.id ? { ...entry, imageUrl: e.target.value } : entry))} placeholder="Poster image URL" />
+                  <input
+                    value={card.imageUrl || ''}
+                    onChange={(e) =>
+                      updateStateList('cards', (cards) =>
+                        cards.map((entry) =>
+                          entry.id === card.id ? { ...entry, imageUrl: cleanImageUrl(e.target.value) } : entry
+                        )
+                      )
+                    }
+                    placeholder="Poster image URL"
+                  />
                   <button className="danger ghost" type="button" onClick={() => removeCard(card.id)}>Delete Card</button>
                 </div>
               </article>
