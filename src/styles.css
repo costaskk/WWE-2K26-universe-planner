@@ -15,6 +15,7 @@
 
 * {
   box-sizing: border-box;
+  min-width: 0;
 }
 
 html,
@@ -29,6 +30,11 @@ body {
 
 a {
   color: #93c5fd;
+}
+
+img {
+  max-width: 100%;
+  display: block;
 }
 
 button,
@@ -317,6 +323,7 @@ textarea:focus {
   font-size: 0.78rem;
   font-weight: 800;
   border: 1px solid transparent;
+  white-space: nowrap;
 }
 
 .status-pill,
@@ -379,9 +386,11 @@ textarea:focus {
 .brand-board {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1rem;
+  align-items: start;
 }
 
 .brand-visual {
+  display: grid;
   grid-template-columns: 1fr;
   min-height: auto;
 }
@@ -432,6 +441,10 @@ textarea:focus {
   padding-right: 0.1rem;
 }
 
+.visual-content > * {
+  min-width: 0;
+}
+
 .visual-content input,
 .visual-content select,
 .visual-content textarea {
@@ -471,12 +484,25 @@ textarea:focus {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 18%;
+  object-position: center top;
   display: block;
   position: relative;
   z-index: 2;
-  transition: transform 0.35s ease, filter 0.35s ease;
+  transition: transform 0.35s ease, filter 0.35s ease, opacity 0.25s ease;
 }
+
+/* Real wrestler/show/brand images should stay visible when present */
+.media-thumb:has(img[src]) .media-fallback {
+  z-index: 1;
+}
+
+.media-thumb:has(img[src]) .media-caption,
+.media-thumb:has(img[src]) .media-logo-mark,
+.media-thumb:has(img[src]) .media-shade-top,
+.media-thumb:has(img[src]) .media-shade-bottom {
+  z-index: 4;
+}
+
 .brand-visual .media-thumb,
 .show-card .media-thumb {
   aspect-ratio: 16 / 9;
@@ -489,6 +515,7 @@ textarea:focus {
   z-index: 1;
   overflow: hidden;
   color: rgba(255, 255, 255, 0.96);
+  pointer-events: none;
 }
 
 .media-fallback.show {
@@ -540,16 +567,28 @@ textarea:focus {
     linear-gradient(180deg, rgba(8, 12, 28, 0.96), rgba(15, 19, 40, 0.94));
 }
 
-.media-overlay-top {
+.media-overlay-top,
+.media-overlay-bottom,
+.media-shade-top,
+.media-shade-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.media-overlay-top,
+.media-shade-top {
   top: 0;
   height: 28%;
   background: linear-gradient(180deg, rgba(2, 6, 23, 0.38), transparent);
 }
 
-.media-overlay-bottom {
+.media-overlay-bottom,
+.media-shade-bottom {
   bottom: 0;
-  height: 42%;
-  background: linear-gradient(180deg, transparent, rgba(2, 6, 23, 0.78));
+  height: 46%;
+  background: linear-gradient(180deg, transparent, rgba(2, 6, 23, 0.84));
 }
 
 .media-glow {
@@ -573,26 +612,6 @@ textarea:focus {
   width: 120px;
   height: 120px;
   background: rgba(59, 130, 246, 0.14);
-}
-
-.media-shade-top,
-.media-shade-bottom {
-  position: absolute;
-  left: 0;
-  right: 0;
-  pointer-events: none;
-}
-
-.media-shade-top {
-  top: 0;
-  height: 28%;
-  background: linear-gradient(180deg, rgba(2, 6, 23, 0.4), transparent);
-}
-
-.media-shade-bottom {
-  bottom: 0;
-  height: 46%;
-  background: linear-gradient(180deg, transparent, rgba(2, 6, 23, 0.84));
 }
 
 .media-logo-mark {
@@ -656,16 +675,8 @@ textarea:focus {
   overflow-wrap: anywhere;
 }
 
-.roster-card .mini-card-top {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 0.85rem;
-}
-
 .superstar-name {
   max-width: 100%;
-  flex: 1 1 auto;
   overflow-wrap: anywhere;
 }
 
@@ -675,14 +686,28 @@ textarea:focus {
 }
 
 .mini-card-top {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: flex-start;
-  justify-content: space-between;
   gap: 0.75rem;
+}
+
+.mini-card-top > :first-child,
+.mini-card-top strong,
+.mini-card-top h3 {
+  min-width: 0;
 }
 
 .mini-card-top .badge {
   flex: 0 0 auto;
+}
+
+.roster-card .mini-card-top,
+.show-card .mini-card-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.85rem;
 }
 
 .split-inputs.compact-grid,
@@ -712,6 +737,8 @@ textarea:focus {
   min-height: 56px;
   display: flex;
   align-items: center;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .roster-meta {
@@ -842,55 +869,29 @@ td {
   justify-content: flex-start;
 }
 
-.roster-card .mini-card-top {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 0.85rem;
-}
-
 .roster-card button,
 .brand-visual input,
 .show-card input {
   width: 100%;
 }
 
-@media (max-width: 1200px) {
-  .roster-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .visual-card {
-    grid-template-columns: 260px minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 1100px) {
-  .two-column,
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .brand-board,
-  .roster-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
+/* Saved cards / show cards */
 .saved-cards {
+  display: grid;
   grid-template-columns: 1fr;
+  gap: 1rem;
 }
 
 .saved-cards .visual-card,
 .show-card {
+  display: grid;
   grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
   min-height: 220px;
   align-items: start;
 }
 
-.show-card .visual-content {
-  min-width: 0;
-  overflow: hidden;
+.show-card .media-thumb {
+  align-self: start;
 }
 
 .show-card .visual-content,
@@ -902,37 +903,23 @@ td {
   min-width: 0;
 }
 
+.show-card .visual-content {
+  overflow: hidden;
+  padding-right: 0;
+}
+
 .show-card ol {
   margin: 0;
   padding-left: 1.1rem;
-
-  min-width: 0;
-
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
   overflow-wrap: anywhere;
 }
 
 .show-card li {
-  margin-bottom: 0.5rem;
-}
-
-.show-card li span,
-.show-card li small {
-  display: block;
-  min-width: 0;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.show-card .mini-card-top {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.75rem;
-  align-items: start;
-}
-
-.show-card .mini-card-top strong {
-  min-width: 0;
-  overflow-wrap: anywhere;
+  margin-bottom: 0;
+  padding-right: 0.15rem;
 }
 
 .show-card li span,
@@ -942,66 +929,12 @@ td {
   word-break: break-word;
 }
 
-@media (max-width: 1180px) {
-  .show-card,
-  .saved-cards .visual-card {
-    grid-template-columns: 1fr;
-  }
+.show-card li small {
+  margin-top: 0.15rem;
+  color: #94a3b8;
 }
 
-@media (max-width: 860px) {
-  .visual-card,
-  .visual-card.roster-card,
-  .brand-visual {
-    grid-template-columns: 1fr;
-  }
-
-  .media-thumb.compact,
-  .brand-visual .media-thumb,
-  .show-card .media-thumb {
-    min-height: 260px;
-    aspect-ratio: 16 / 10;
-  }
-
-  .split-inputs.compact-grid,
-  .compact-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .display-name {
-    font-size: 1.65rem;
-  }
-}
-
-@media (max-width: 760px) {
-  .hero {
-    flex-direction: column;
-  }
-
-  .app-shell {
-    padding: 1rem 0.8rem 3rem;
-  }
-
-  .inline-form > * {
-    flex-basis: 100%;
-  }
-
-  .split-inputs,
-  .section-actions,
-  .auth-actions,
-  .section-header {
-    flex-direction: column;
-  }
-
-  .hero-actions {
-    width: 100%;
-  }
-
-  .hero-actions > * {
-    flex: 1 1 100%;
-  }
-}
-
+/* Image search links */
 .image-search-links {
   display: flex;
   flex-wrap: wrap;
@@ -1032,63 +965,97 @@ td {
   border-color: rgba(147, 197, 253, 0.45);
 }
 
-.visual-content > * {
-  min-width: 0;
-}
-
-.mini-card-top > :first-child,
-.mini-card-top strong,
-.mini-card-top h3 {
-  min-width: 0;
-}
-
-.lookup-result,
-.show-card ol,
-.show-card li,
-.show-card li span,
-.show-card li small {
-  min-width: 0;
-}
-
-.lookup-result,
-.show-card li span,
-.show-card li small {
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.show-card .visual-content {
-  padding-right: 0;
-}
-
-.show-card ol {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-}
-
-.show-card li {
-  padding-right: 0.15rem;
-}
-
-.show-card li span,
-.show-card li small {
-  display: block;
-}
-
-.show-card li small {
-  margin-top: 0.15rem;
-  color: #94a3b8;
-}
-
-.saved-cards .visual-card,
-.show-card {
-  align-items: start;
-}
-
-@media (max-width: 960px) {
-  .saved-cards .visual-card,
-  .show-card {
+@media (max-width: 1200px) {
+  .roster-grid {
     grid-template-columns: 1fr;
+  }
+
+  .visual-card {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1180px) {
+  .show-card,
+  .saved-cards .visual-card {
+    grid-template-columns: 1fr;
+  }
+
+  .show-card .media-thumb,
+  .saved-cards .media-thumb {
+    min-height: 240px;
+    aspect-ratio: 16 / 9;
+  }
+}
+
+@media (max-width: 1100px) {
+  .two-column,
+  .stats-grid,
+  .brand-board,
+  .roster-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .visual-card,
+  .visual-card.roster-card,
+  .brand-visual {
+    grid-template-columns: 1fr;
+  }
+
+  .media-thumb.compact,
+  .brand-visual .media-thumb,
+  .show-card .media-thumb {
+    min-height: 260px;
+    aspect-ratio: 16 / 10;
+  }
+
+  .split-inputs.compact-grid,
+  .compact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .display-name {
+    font-size: 1.65rem;
+  }
+
+  .mini-card-top,
+  .roster-card .mini-card-top,
+  .show-card .mini-card-top {
+    grid-template-columns: 1fr;
+  }
+
+  .mini-card-top .badge {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 760px) {
+  .hero {
+    flex-direction: column;
+  }
+
+  .app-shell {
+    padding: 1rem 0.8rem 3rem;
+  }
+
+  .inline-form > * {
+    flex-basis: 100%;
+  }
+
+  .split-inputs,
+  .section-actions,
+  .auth-actions,
+  .section-header {
+    flex-direction: column;
+  }
+
+  .hero-actions {
+    width: 100%;
+  }
+
+  .hero-actions > * {
+    flex: 1 1 100%;
   }
 }
