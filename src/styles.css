@@ -484,6 +484,8 @@ textarea:focus {
   max-width: 100%;
 }
 
+
+
 .media-thumb.compact {
   min-height: 350px;
   aspect-ratio: 3 / 4;
@@ -498,6 +500,13 @@ textarea:focus {
   position: relative;
   z-index: 2;
   transition: transform 0.35s ease, filter 0.35s ease;
+}
+
+.media-thumb img[src^="data:image/svg+xml"] {
+  object-fit: contain;
+  object-position: center center;
+  padding: 0;
+  background: linear-gradient(180deg, rgba(9, 15, 36, 0.98), rgba(5, 10, 28, 0.98));
 }
 
 .brand-visual .media-thumb,
@@ -1020,8 +1029,9 @@ td {
   .show-card .media-thumb,
   .saved-cards .media-thumb {
     aspect-ratio: 16 / 9;
-    min-height: 200px;
-    max-height: 200px;
+    height: 220px;
+    min-height: 220px;
+    max-height: 220px;
   }
 
   .split-inputs.compact-grid,
